@@ -15,7 +15,7 @@ Closes #
 - [ ] Extractor / language coverage improvement
 - [ ] Docs
 - [ ] Refactor with no command or output-shape change
-- [ ] Surface change (schema, JSON output, or MCP tool contract) — opened an issue first per CONTRIBUTING.md
+- [ ] Surface change (schema, JSON output, or MCP tool contract), opened an issue first per CONTRIBUTING.md
 
 ## Checklist
 
