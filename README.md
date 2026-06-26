@@ -17,6 +17,12 @@
 
 GraphTrail indexes your code once, stays incremental after that, and answers structural questions before an agent touches a line.
 
+<p align="center">
+  <img src="docs/assets/graphtrail-context.svg" alt="Recording: graphtrail init and sync build a code graph, then callers and context answer structural questions before an edit" width="760">
+</p>
+
+Index a repo, then ask who calls a symbol and what context an agent should load before editing it. The `context` pack is exactly what an agent gets over MCP.
+
 ## What it does
 
 GraphTrail is a code-graph navigation tool for AI coding agents and developers. It parses each source file with tree-sitter in a single pass, extracts symbols (functions, classes, methods), imports, and call edges, and writes them into a small local SQLite graph under `.graphtrail/`. From that graph it answers the structural questions you ask before changing code: full-text symbol search, the callers of a symbol, its callees, the impact (blast radius) of a change, and a context pack that gathers entry points plus their caller and callee neighborhood for a task.
