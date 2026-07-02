@@ -9,3 +9,6 @@
 
 # Brigade run artifacts
 .brigade/
+
+# Local Brigade outcome records
+/memory/
