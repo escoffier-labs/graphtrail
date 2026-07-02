@@ -6,3 +6,6 @@
 
 # Local MCP registration (machine-specific paths)
 .mcp.json
+
+# Brigade run artifacts
+.brigade/
