@@ -36,3 +36,40 @@ fn docker_context_excludes_private_state() {
         );
     }
 }
+
+#[test]
+fn supported_toolchain_and_agent_workflow_are_documented() {
+    let ci = repository_file(".github/workflows/ci.yml");
+    assert!(ci.contains("toolchain: \"1.85\""), "CI must pin Rust 1.85");
+    assert!(
+        ci.contains("cargo check --locked --all-features"),
+        "the Rust 1.85 CI job must check the locked all-features build"
+    );
+
+    let readme = repository_file("README.md");
+    assert!(
+        readme.contains("Rust 1.85 or newer"),
+        "README must state the supported Rust version"
+    );
+    assert!(
+        readme.contains("`refresh: true` is a default-off graph-index write"),
+        "README must name the opt-in MCP write boundary"
+    );
+    assert!(
+        readme.contains("before the query opens the graph read-only"),
+        "README must explain when the opt-in refresh write occurs"
+    );
+
+    let agents = repository_file("AGENTS.md");
+    for required in [
+        "brigade work brief --target .",
+        "brigade work verify run --target . --command",
+        "brigade outcome capture",
+        ".claude/memory-handoffs/",
+    ] {
+        assert!(
+            agents.contains(required),
+            "AGENTS.md must document the Brigade workflow step: {required}"
+        );
+    }
+}

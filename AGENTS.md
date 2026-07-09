@@ -22,14 +22,33 @@ cargo test --all-features
 cargo build --release
 ```
 
+## Brigade work loop
+
+This repository is Brigade-wired. Read the work brief before editing:
+
+```bash
+brigade work brief --target .
+```
+
+Run checks through Brigade so the exit code is recorded, then capture the outcome against the skill or card that guided the change:
+
+```bash
+brigade work verify run --target . --command "cargo test --all-features"
+brigade outcome capture taste --run-id latest --kind skill
+```
+
+Replace `taste` with the skill or card used for that verification. After substantial work, write durable findings in the standard Memory Handoff format under `.claude/memory-handoffs/`, then run `brigade handoff lint` before finishing.
+
 ## Module map
 
 The code is split into focused modules:
 
 - `model` (`src/model.rs`): shared types.
 - `extractors` (`src/extractors/`): per-language tree-sitter providers plus shared traversal in `common.rs`. Each language is a provider behind the `LangSpec` trait.
-- `store` (`src/store/`): `db`, `lock`, `schema`, `sync`.
-- `query` (`src/query/`): `search`, `graph`, `context`, `stats`, `doctor`.
+- `store` (`src/store/`): database access, locking, metadata, schema upgrades, repository policy, incremental sync, persisted pending calls, and edge resolution.
+- `query` (`src/query/`): symbol search, graph traversal, context packs, stats, freshness checks, graph diffs, structural health, and affected-test attribution.
+- `mcp` (`src/mcp.rs`): JSON-RPC handling plus the MCP tool registry, argument policy, and dispatch.
+- `adapters` (`src/adapters/`): optional Code Search and MiseLedger integrations behind cargo features.
 - `cli` (`src/cli.rs`): a thin command-line interface.
 - Binaries: `src/main.rs` (the `graphtrail` CLI) and `src/bin/graphtrail-mcp.rs` (the `graphtrail-mcp` MCP server).
 

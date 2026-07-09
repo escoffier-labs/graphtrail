@@ -16,6 +16,18 @@ on:
       - '.gitignore'
 
 jobs:
+  msrv:
+    name: MSRV (Rust 1.85)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85
+        with:
+          toolchain: "1.85"
+      - uses: Swatinem/rust-cache@v2
+      - name: Check locked all-features build
+        run: cargo check --locked --all-features
+
   build-and-test:
     runs-on: ubuntu-latest
     steps:

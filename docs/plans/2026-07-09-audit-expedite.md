@@ -51,11 +51,11 @@ Files: `src/mcp.rs`, `tests/mcp.rs`.
 
 Files: `.github/workflows/ci.yml`, `README.md`, `AGENTS.md`, `CHANGELOG.md`, `.github/ISSUE_TEMPLATE/bug.yml`, `.github/ISSUE_TEMPLATE/feature.yml`.
 
-- [ ] Add a failing repository-contract test asserting an MSRV job pins `1.85`, README describes `refresh: true` as an opt-in index write, and AGENTS documents Brigade verification/handoffs.
-- [ ] Run the focused contract test; expect failure.
-- [ ] Add the MSRV `cargo check --locked --all-features` job; update README trust boundary, Rust prerequisite, current stats example; update AGENTS module map and Brigade loop; record schema v5/v6 and analysis commands in `Unreleased`; modernize issue forms.
-- [ ] Re-run the contract test and `cargo fmt --check`; expect pass.
-- [ ] Commit `docs: align agent and release contracts with current graphtrail`.
+- [x] Add a failing repository-contract test asserting an MSRV job pins `1.85`, README describes `refresh: true` as an opt-in index write, and AGENTS documents Brigade verification/handoffs.
+- [x] Run the focused contract test; expect failure.
+- [x] Add the MSRV `cargo check --locked --all-features` job; update README trust boundary, Rust prerequisite, current stats example; update AGENTS module map and Brigade loop; record schema v5/v6 and analysis commands in `Unreleased`; modernize issue forms.
+- [x] Re-run the contract test and `cargo fmt --check`; expect pass.
+- [x] Commit `docs: align agent and release contracts with current graphtrail`.
 
 ### Task 5: Split sync internals without changing behavior
 
