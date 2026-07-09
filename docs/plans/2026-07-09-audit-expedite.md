@@ -75,11 +75,11 @@ Review fix: extracted sync internals use store-only visibility; only `guard_unsa
 
 Files: `src/query/health.rs`, `src/model.rs`, `tests/analysis.rs`.
 
-- [ ] Add fixtures showing a trait method, exported/public entry point, and callback-style symbol must not be presented as high-confidence dead code. Assert each result includes `confidence` and `reason`.
-- [ ] Run `cargo test --test analysis dead_code`; expect failure because the fields and classification are absent.
-- [ ] Add conservative classification from symbol kind/signature/container and graph evidence. Keep uncertain candidates, mark them low confidence, and sort high-confidence candidates first. Preserve the existing caveat and total count.
-- [ ] Re-run analysis tests and the full suite; expect pass.
-- [ ] Commit `feat(analysis): rank dead-code candidates by confidence`.
+- [x] Add fixtures showing a trait method, exported/public entry point, and callback-style symbol must not be presented as high-confidence dead code. Assert each result includes `confidence` and `reason`.
+- [x] Run `cargo test --test analysis dead_code`; expect failure because the fields and classification are absent.
+- [x] Add conservative classification from symbol kind/signature/container and graph evidence. Keep uncertain candidates, mark them low confidence, and sort high-confidence candidates first. Preserve the existing caveat and total count.
+- [x] Re-run analysis tests and the full suite; expect pass.
+- [x] Commit `feat(analysis): rank dead-code candidates by confidence`.
 
 ### Task 7: Final verification
 
