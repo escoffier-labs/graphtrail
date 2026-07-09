@@ -93,7 +93,7 @@ When the sync root is inside a git repository, `sync` follows `.gitignore` and `
 
 ## MCP server
 
-`graphtrail-mcp` speaks newline-delimited JSON-RPC 2.0 over stdio. It has no async runtime and no extra dependencies, so the sidecar stays small. `refresh: true` is a default-off graph-index write. When supplied to a supported query tool, GraphTrail runs an incremental sync on a write connection before the query opens the graph read-only. Without it, MCP tools do not write the graph.
+`graphtrail-mcp` speaks newline-delimited JSON-RPC 2.0 over stdio. It has no async runtime and no extra dependencies, so the sidecar stays small. `refresh: true` starts an incremental graph-index write and waits up to 10 seconds before opening the query read-only. If the refresh fails or times out, the query proceeds and appends a `refresh_error` note to its text result. A timed-out worker may finish concurrently with that read-only query. Without `refresh`, query tools do not write the graph.
 
 The default database comes from `--db <path>`, `--db=<path>`, the `GRAPHTRAIL_DB` env var, or `.graphtrail/graphtrail.db` in the working directory. Every tool also accepts an optional `repo` (uses `<repo>/.graphtrail/graphtrail.db`) or `db` (explicit path) argument, so a single running server can answer for any indexed repository. The database is opened lazily per call, so the server starts even before the default db exists.
 

@@ -55,7 +55,23 @@ fn docker_context_excludes_private_state() {
 #[test]
 fn supported_toolchain_and_agent_workflow_are_documented() {
     let ci = repository_file(".github/workflows/ci.yml");
-    assert!(ci.contains("toolchain: \"1.85\""), "CI must pin Rust 1.85");
+    assert!(
+        ci.contains("uses: dtolnay/rust-toolchain@1.85.0"),
+        "CI must install the exact Rust 1.85.0 toolchain"
+    );
+    assert!(
+        !ci.lines().any(|line| line.trim().starts_with("toolchain:")),
+        "the MSRV action ref must not be overridden by a toolchain input"
+    );
+    assert!(
+        !ci.lines().any(|line| {
+            line.trim()
+                .strip_prefix("- ")
+                .map(|pattern| pattern.trim_matches(['\'', '"']))
+                .is_some_and(|pattern| matches!(pattern, "*.md" | "**/*.md"))
+        }),
+        "CI must run when root Markdown contracts change"
+    );
     assert!(
         ci.contains("cargo check --locked --all-features"),
         "the Rust 1.85 CI job must check the locked all-features build"
@@ -67,12 +83,24 @@ fn supported_toolchain_and_agent_workflow_are_documented() {
         "README must state the supported Rust version"
     );
     assert!(
-        readme.contains("`refresh: true` is a default-off graph-index write"),
-        "README must name the opt-in MCP write boundary"
+        readme.contains("`refresh: true` starts an incremental graph-index write"),
+        "README must name when the opt-in MCP write starts"
     );
     assert!(
-        readme.contains("before the query opens the graph read-only"),
-        "README must explain when the opt-in refresh write occurs"
+        readme.contains("waits up to 10 seconds before opening the query read-only"),
+        "README must state the refresh wait limit"
+    );
+    assert!(
+        readme.contains("the query proceeds and appends a `refresh_error` note"),
+        "README must document fail-open refresh errors"
+    );
+    assert!(
+        readme.contains("A timed-out worker may finish concurrently"),
+        "README must document the timed-out worker overlap"
+    );
+    assert!(
+        readme.contains("Without `refresh`, query tools do not write the graph"),
+        "README must document the default no-write behavior"
     );
 
     let agents = repository_file("AGENTS.md");
@@ -85,6 +113,18 @@ fn supported_toolchain_and_agent_workflow_are_documented() {
         assert!(
             agents.contains(required),
             "AGENTS.md must document the Brigade workflow step: {required}"
+        );
+    }
+    for required in [
+        "`refresh: true` starts an incremental graph-index write",
+        "waits up to 10 seconds before opening the query read-only",
+        "the query proceeds and appends a `refresh_error` note",
+        "A timed-out worker may finish concurrently",
+        "Without `refresh`, query tools do not write the graph",
+    ] {
+        assert!(
+            agents.contains(required),
+            "AGENTS.md must document the refresh contract: {required}"
         );
     }
 }
