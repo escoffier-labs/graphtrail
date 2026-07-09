@@ -27,6 +27,8 @@ Files: `Dockerfile`, `.dockerignore`, `.gitignore`, `tests/repository_contract.r
 - [x] Re-run the focused test; expect pass.
 - [x] Commit `fix(docker): exclude private local state from build context`.
 
+Review fix: `.dockerignore` now denies all context inputs and re-includes only the Dockerfile, Cargo manifests, and `src/`; the Docker context fell from 973.3 kB to 322 kB.
+
 ### Task 2: Bound Code Search responses
 
 Files: `src/adapters/codesearch.rs`.

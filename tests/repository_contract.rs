@@ -14,27 +14,24 @@ fn docker_context_excludes_private_state() {
     );
 
     let dockerignore = repository_file(".dockerignore");
-    let exclusions: Vec<_> = dockerignore
+    let rules: Vec<_> = dockerignore
         .lines()
         .map(str::trim)
         .filter(|line| !line.is_empty() && !line.starts_with('#'))
         .collect();
-
-    for required in [
-        ".brigade/",
-        ".codex/",
-        "memory/",
-        ".mcp.json",
-        ".env",
-        ".env.*",
-        "*.pem",
-        "*.key",
-    ] {
-        assert!(
-            exclusions.contains(&required),
-            ".dockerignore must exclude {required}"
-        );
-    }
+    assert_eq!(
+        rules,
+        [
+            "**",
+            "!Dockerfile",
+            "!.dockerignore",
+            "!Cargo.toml",
+            "!Cargo.lock",
+            "!src/",
+            "!src/**",
+        ],
+        ".dockerignore must deny all context inputs except the files copied by Dockerfile"
+    );
 }
 
 #[test]
