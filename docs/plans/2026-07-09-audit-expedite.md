@@ -41,11 +41,11 @@ Files: `src/adapters/codesearch.rs`.
 
 Files: `src/mcp.rs`, `tests/mcp.rs`.
 
-- [ ] Add a unit test for a new `tool_specs()` registry that asserts unique names, full default membership, and refresh policy, plus integration tests for successful `dead_code`, `cycles`, and `affected` calls and invalid `affected.files`, `limit`, and `depth` cases.
-- [ ] Run the focused registry unit test; expect a compile failure because `tool_specs()` does not exist.
-- [ ] Introduce one `ToolSpec` registry that owns tool names, schemas, refresh capability, and validation/dispatch identity. Generate `tools/list` and policy checks from it without changing response schemas.
-- [ ] Run `cargo test --all-features --test mcp`; expect all MCP tests pass.
-- [ ] Commit `refactor(mcp): define tool contracts from one registry`.
+- [x] Add a unit test for a new `tool_specs()` registry that asserts unique names, full default membership, and refresh policy, plus integration tests for successful `dead_code`, `cycles`, and `affected` calls and invalid `affected.files`, `limit`, and `depth` cases.
+- [x] Run the focused registry unit test; expect a compile failure because `tool_specs()` does not exist.
+- [x] Introduce one `ToolSpec` registry that owns tool names, schemas, refresh capability, and validation/dispatch identity. Generate `tools/list` and policy checks from it without changing response schemas.
+- [x] Run `cargo test --all-features --test mcp`; expect all MCP tests pass.
+- [x] Commit `refactor(mcp): define tool contracts from one registry`.
 
 ### Task 4: Enforce supported toolchain and update project guidance
 
