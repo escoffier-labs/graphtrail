@@ -150,6 +150,12 @@ fn classify_dead_code_candidate(
             "callback-style name may be registered or invoked indirectly",
         );
     }
+    if matches!(language, "typescript" | "javascript") {
+        return (
+            "low",
+            "top-level JavaScript/TypeScript module visibility is not persisted; export-list use cannot be ruled out",
+        );
+    }
     if is_public_or_exported(language, name, signature) {
         return (
             "low",

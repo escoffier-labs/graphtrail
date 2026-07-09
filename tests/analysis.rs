@@ -52,6 +52,10 @@ fn dead_code_confidence_fixture() -> (tempfile::TempDir, Connection) {
     write(root.join("b_public.rs"), "pub fn exported_entry() {}\n");
     write(root.join("c_callback.rs"), "fn on_event() {}\n");
     write(
+        root.join("d_export_list.js"),
+        "function listedApi() {}\n\nexport { listedApi };\n",
+    );
+    write(
         root.join("z_private.rs"),
         "fn local_helper() {}\nfn pending_hint() {}\nfn import_hint() {}\n",
     );
@@ -116,7 +120,7 @@ fn dead_code_ranks_private_candidates_ahead_of_uncertain_ones() {
         private.reason
     );
 
-    for uncertain in ["handle", "exported_entry", "on_event"] {
+    for uncertain in ["handle", "exported_entry", "on_event", "listedApi"] {
         let symbol = by_name
             .get(uncertain)
             .expect("uncertain candidate retained");
@@ -127,6 +131,7 @@ fn dead_code_ranks_private_candidates_ahead_of_uncertain_ones() {
     assert!(by_name["handle"].reason.contains("dynamic dispatch"));
     assert!(by_name["exported_entry"].reason.contains("public/exported"));
     assert!(by_name["on_event"].reason.contains("callback-style"));
+    assert!(by_name["listedApi"].reason.contains("module visibility"));
 
     let private_position = report
         .symbols
@@ -139,7 +144,7 @@ fn dead_code_ranks_private_candidates_ahead_of_uncertain_ones() {
         .position(|symbol| {
             matches!(
                 symbol.name.as_str(),
-                "handle" | "exported_entry" | "on_event"
+                "handle" | "exported_entry" | "on_event" | "listedApi"
             )
         })
         .unwrap();
