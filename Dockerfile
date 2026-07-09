@@ -5,7 +5,8 @@
 # rusqlite uses the `bundled` feature, so no system sqlite/openssl libs are needed.
 FROM rust:1-slim AS builder
 WORKDIR /app
-COPY . .
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
 RUN cargo build --release --bin graphtrail-mcp
 
 # Stage 2: minimal runtime image. The MCP server speaks JSON-RPC over stdio,

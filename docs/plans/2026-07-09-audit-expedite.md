@@ -21,11 +21,11 @@ Execute task by task. Keep every behavior change test-first and commit each task
 
 Files: `Dockerfile`, `.dockerignore`, `.gitignore`, `tests/repository_contract.rs`.
 
-- [ ] Add a failing test that reads `Dockerfile` and `.dockerignore`, asserts `COPY . .` is absent, and asserts exclusions for `.brigade`, `.codex`, `memory`, `.mcp.json`, `.env`, PEM/key patterns.
-- [ ] Run `cargo test --test repository_contract docker_context_excludes_private_state`; expect failure on `COPY . .` and missing exclusions.
-- [ ] Replace `COPY . .` with selective manifest/source copies and add the exclusions. Ignore `.codex/` in git.
-- [ ] Re-run the focused test; expect pass.
-- [ ] Commit `fix(docker): exclude private local state from build context`.
+- [x] Add a failing test that reads `Dockerfile` and `.dockerignore`, asserts `COPY . .` is absent, and asserts exclusions for `.brigade`, `.codex`, `memory`, `.mcp.json`, `.env`, PEM/key patterns.
+- [x] Run `cargo test --test repository_contract docker_context_excludes_private_state`; expect failure on `COPY . .` and missing exclusions.
+- [x] Replace `COPY . .` with selective manifest/source copies and add the exclusions. Ignore `.codex/` in git.
+- [x] Re-run the focused test; expect pass.
+- [x] Commit `fix(docker): exclude private local state from build context`.
 
 ### Task 2: Bound Code Search responses
 

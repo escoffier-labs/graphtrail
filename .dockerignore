@@ -2,4 +2,12 @@ target/
 .graphtrail/
 .git/
 .claude/
+.brigade/
+.codex/
+memory/
+.mcp.json
+.env
+.env.*
+*.pem
+*.key
 *.db
