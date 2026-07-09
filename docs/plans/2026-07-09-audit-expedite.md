@@ -31,11 +31,11 @@ Files: `Dockerfile`, `.dockerignore`, `.gitignore`, `tests/repository_contract.r
 
 Files: `src/adapters/codesearch.rs`.
 
-- [ ] Add `oversized_response_is_rejected_before_json_decode`, backed by the existing mock TCP server, that serves more than `MAX_CODE_SEARCH_RESPONSE_BYTES` and asserts the size-limit error.
-- [ ] Run `cargo test --all-features adapters::codesearch::tests::oversized_response_is_rejected_before_json_decode`; expect the current unbounded decoder not to return the size-limit error.
-- [ ] Read at most `MAX_CODE_SEARCH_RESPONSE_BYTES + 1` through `Read::take`, reject overflow, then deserialize with `serde_json::from_slice`.
-- [ ] Re-run the focused test and existing Code Search tests; expect pass.
-- [ ] Commit `fix(codesearch): cap response bodies before decoding`.
+- [x] Add `oversized_response_is_rejected_before_json_decode`, backed by the existing mock TCP server, that serves more than `MAX_CODE_SEARCH_RESPONSE_BYTES` and asserts the size-limit error.
+- [x] Run `cargo test --all-features adapters::codesearch::tests::oversized_response_is_rejected_before_json_decode`; expect the current unbounded decoder not to return the size-limit error.
+- [x] Read at most `MAX_CODE_SEARCH_RESPONSE_BYTES + 1` through `Read::take`, reject overflow, then deserialize with `serde_json::from_slice`.
+- [x] Re-run the focused test and existing Code Search tests; expect pass.
+- [x] Commit `fix(codesearch): cap response bodies before decoding`.
 
 ### Task 3: Centralize and contract-test MCP tools
 
