@@ -81,6 +81,10 @@ Files: `src/query/health.rs`, `src/model.rs`, `tests/analysis.rs`.
 - [x] Re-run analysis tests and the full suite; expect pass.
 - [x] Commit `feat(analysis): rank dead-code candidates by confidence`.
 
+Review fix: top-level JavaScript/TypeScript functions remain low-confidence because
+export-list visibility is not persisted, and plain-text CLI rows show each
+candidate's confidence and reason.
+
 ### Task 7: Final verification
 
 - [ ] Run through Brigade: `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --all-features`, `cargo build --release`.
