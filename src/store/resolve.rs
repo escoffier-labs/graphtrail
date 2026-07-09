@@ -28,7 +28,7 @@ enum ImportResolution {
 /// edges from callers in unchanged files, and resolutions that a change made
 /// stale (a fallback superseded by a strict match, a deleted target) disappear
 /// instead of lingering.
-pub(crate) fn rebuild_edges(tx: &Connection) -> Result<()> {
+pub(super) fn rebuild_edges(tx: &Connection) -> Result<()> {
     tx.execute("DELETE FROM edges", [])?;
     let name_index = load_name_index(tx)?;
     let import_index = load_import_index(tx)?;

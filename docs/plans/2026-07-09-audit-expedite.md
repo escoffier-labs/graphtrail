@@ -69,6 +69,8 @@ Files: `src/store/sync.rs`; create `src/store/walk.rs`, `src/store/persist.rs`, 
 - [x] Run `cargo test --all-features`; expect 143 or more tests pass.
 - [x] Commit `refactor(sync): separate walking persistence and resolution`.
 
+Review fix: extracted sync internals use store-only visibility; only `guard_unsafe_root` and `current_git_branch` remain crate-visible for existing consumers.
+
 ### Task 6: Improve dead-code candidate precision
 
 Files: `src/query/health.rs`, `src/model.rs`, `tests/analysis.rs`.

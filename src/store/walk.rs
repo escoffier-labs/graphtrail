@@ -15,20 +15,20 @@ use crate::extractors::language_for;
 use crate::model::{IgnoredSummary, Lang};
 use crate::store::repo_policy::has_git_context;
 
-pub(crate) struct Entry {
-    pub(crate) path: PathBuf,
-    pub(crate) rel: String,
-    pub(crate) lang: Lang,
-    pub(crate) size: u64,
-    pub(crate) mtime: i64,
+pub(super) struct Entry {
+    pub(super) path: PathBuf,
+    pub(super) rel: String,
+    pub(super) lang: Lang,
+    pub(super) size: u64,
+    pub(super) mtime: i64,
 }
 
-pub(crate) struct SyncWalk {
-    pub(crate) entries: Vec<Entry>,
-    pub(crate) ignored: IgnoredSummary,
+pub(super) struct SyncWalk {
+    pub(super) entries: Vec<Entry>,
+    pub(super) ignored: IgnoredSummary,
 }
 
-pub(crate) fn collect_sync_walk(root: &Path, count_ignored: bool) -> Result<SyncWalk> {
+pub(super) fn collect_sync_walk(root: &Path, count_ignored: bool) -> Result<SyncWalk> {
     let ignored = IgnoredSummary {
         hardcoded_floor: 0,
         gitignore: if count_ignored {

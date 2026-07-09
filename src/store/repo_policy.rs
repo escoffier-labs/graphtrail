@@ -40,11 +40,11 @@ fn unsafe_root_reason(root: &Path, home: Option<&Path>) -> Option<&'static str> 
     None
 }
 
-pub(crate) fn has_git_context(root: &Path) -> bool {
+pub(super) fn has_git_context(root: &Path) -> bool {
     root.ancestors().any(has_git_marker)
 }
 
-pub(crate) fn has_git_marker(dir: &Path) -> bool {
+pub(super) fn has_git_marker(dir: &Path) -> bool {
     let git = dir.join(".git");
     git.is_file() || git.join("HEAD").is_file()
 }
@@ -52,7 +52,7 @@ pub(crate) fn has_git_marker(dir: &Path) -> bool {
 /// Record which branch the graph describes, so `doctor` can flag a checkout
 /// of a different branch as drift. Removed when the root has no git context,
 /// so a repo that stops being one does not pin a stale branch forever.
-pub(crate) fn write_branch_meta(tx: &Connection, root: &Path) -> Result<()> {
+pub(super) fn write_branch_meta(tx: &Connection, root: &Path) -> Result<()> {
     match current_git_branch(root) {
         Some(branch) => crate::store::meta::upsert(tx, "synced_branch", &branch)?,
         None => {
@@ -100,7 +100,7 @@ pub(crate) fn current_git_branch(root: &Path) -> Option<String> {
     }
 }
 
-pub(crate) fn ensure_graphtrail_ignored(root: &Path) -> Result<()> {
+pub(super) fn ensure_graphtrail_ignored(root: &Path) -> Result<()> {
     let gitignore = root.join(".gitignore");
     if gitignore_covers_graphtrail(root, &gitignore)? {
         return Ok(());

@@ -11,25 +11,25 @@ use crate::extractors::common::hex_hash;
 use crate::extractors::{extractor_fingerprint_for, language_for};
 use crate::store::walk::Entry;
 
-pub(crate) struct DbFile {
+pub(super) struct DbFile {
     content_hash: String,
     size: u64,
     mtime: i64,
     extractor_fingerprint: Option<String>,
 }
 
-pub(crate) struct StalePlan<'a> {
-    pub(crate) entries: Vec<&'a Entry>,
+pub(super) struct StalePlan<'a> {
+    pub(super) entries: Vec<&'a Entry>,
 }
 
-pub(crate) enum EntryFreshness {
+pub(super) enum EntryFreshness {
     Fresh,
     New,
     Changed,
     FingerprintStale,
 }
 
-pub(crate) fn stale_plan<'a>(
+pub(super) fn stale_plan<'a>(
     entries: &'a [Entry],
     db_files: &HashMap<String, DbFile>,
 ) -> Result<StalePlan<'a>> {
@@ -47,7 +47,7 @@ pub(crate) fn stale_plan<'a>(
 
 /// Insert one extracted file's rows: the file record, its symbols (plus FTS),
 /// imports, and pending calls awaiting cross-file resolution.
-pub(crate) fn write_file_graph(
+pub(super) fn write_file_graph(
     tx: &Connection,
     graph: &crate::model::FileGraph,
     now: i64,
@@ -127,7 +127,7 @@ pub(crate) fn write_file_graph(
     Ok(())
 }
 
-pub(crate) fn purge_file_graph(tx: &Connection, path: &str) -> Result<()> {
+pub(super) fn purge_file_graph(tx: &Connection, path: &str) -> Result<()> {
     tx.execute(
         "DELETE FROM symbols_fts WHERE file_path = ?1",
         params![path],
@@ -142,7 +142,7 @@ pub(crate) fn purge_file_graph(tx: &Connection, path: &str) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn entry_freshness(
+pub(super) fn entry_freshness(
     entry: &Entry,
     db_files: &HashMap<String, DbFile>,
 ) -> Result<EntryFreshness> {
@@ -162,7 +162,7 @@ pub(crate) fn entry_freshness(
 }
 
 /// Map file path -> freshness metadata from the `files` table.
-pub(crate) fn load_db_files(conn: &Connection) -> Result<HashMap<String, DbFile>> {
+pub(super) fn load_db_files(conn: &Connection) -> Result<HashMap<String, DbFile>> {
     let has_fingerprint =
         crate::store::schema::table_has_column(conn, "files", "extractor_fingerprint")?;
     let sql = if has_fingerprint {
@@ -191,7 +191,7 @@ pub(crate) fn load_db_files(conn: &Connection) -> Result<HashMap<String, DbFile>
 }
 
 /// (files, symbols, edges, imports) row counts, used for the no-op summary.
-pub(crate) fn table_counts(conn: &Connection) -> Result<(usize, usize, usize, usize)> {
+pub(super) fn table_counts(conn: &Connection) -> Result<(usize, usize, usize, usize)> {
     let count = |sql: &str| -> Result<usize> {
         Ok(conn.query_row(sql, [], |row| row.get::<_, i64>(0))? as usize)
     };
