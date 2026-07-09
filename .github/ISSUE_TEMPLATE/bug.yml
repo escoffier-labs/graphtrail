@@ -18,7 +18,7 @@ body:
     attributes:
       label: GraphTrail version
       description: Output of `graphtrail --version`.
-      placeholder: graphtrail 0.3.0
+      placeholder: graphtrail X.Y.Z
     validations:
       required: true
   - type: dropdown

@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `sync` now refuses to index the filesystem root or the user's home directory instead of walking every cache, toolchain, and vendored source tree on the machine, which held the whole pending graph in memory and could exhaust system RAM. The CLI rejects the root before creating `.graphtrail/`, and the same guard covers the MCP `refresh: true` path. Set `GRAPHTRAIL_ALLOW_UNSAFE_ROOT=1` to override.
 - Docker builds copy only the manifests and source tree they need, while `.dockerignore` excludes Brigade receipts, local agent state, memory handoffs, MCP configuration, environment files, and key material.
-- Code Search responses are rejected above the configured byte limit before JSON decoding, preventing an oversized response from being buffered without a bound.
+- Code Search responses above 8 MiB are rejected before JSON decoding, preventing an oversized response from being buffered without a bound.
 
 ## [0.3.0] - 2026-07-08
 
