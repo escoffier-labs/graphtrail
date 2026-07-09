@@ -63,11 +63,11 @@ Files: `.github/workflows/ci.yml`, `README.md`, `AGENTS.md`, `CHANGELOG.md`, `.g
 
 Files: `src/store/sync.rs`; create `src/store/walk.rs`, `src/store/persist.rs`, `src/store/repo_policy.rs`, `src/store/resolve.rs`; modify `src/store/mod.rs`.
 
-- [ ] Record the existing public exports and run `cargo test --all-features incremental resolution`; expect pass as baseline.
-- [ ] Move repository walking/ignore policy first and run `cargo check`; expect an initial unresolved-module compile failure before wiring `mod` imports.
-- [ ] Move persistence and call resolution in separate mechanical steps, keeping `sync_repo`, `sync_repo_force`, and output types stable.
-- [ ] Run `cargo test --all-features`; expect 143 or more tests pass.
-- [ ] Commit `refactor(sync): separate walking persistence and resolution`.
+- [x] Record the existing public exports and run `cargo test --all-features incremental resolution`; expect pass as baseline.
+- [x] Move repository walking/ignore policy first and run `cargo check`; expect an initial unresolved-module compile failure before wiring `mod` imports.
+- [x] Move persistence and call resolution in separate mechanical steps, keeping `sync_repo`, `sync_repo_force`, and output types stable.
+- [x] Run `cargo test --all-features`; expect 143 or more tests pass.
+- [x] Commit `refactor(sync): separate walking persistence and resolution`.
 
 ### Task 6: Improve dead-code candidate precision
 

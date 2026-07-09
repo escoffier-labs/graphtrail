@@ -6,6 +6,24 @@ fn repository_file(path: impl AsRef<Path>) -> String {
 }
 
 #[test]
+fn sync_orchestration_is_split_into_focused_modules() {
+    for module in ["walk", "persist", "repo_policy", "resolve"] {
+        let path = format!("src/store/{module}.rs");
+        assert!(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join(&path).is_file(),
+            "sync responsibility must live in {path}"
+        );
+    }
+
+    let sync = repository_file("src/store/sync.rs");
+    assert!(
+        sync.lines().count() <= 400,
+        "sync.rs must remain a small orchestration facade; found {} lines",
+        sync.lines().count()
+    );
+}
+
+#[test]
 fn docker_context_excludes_private_state() {
     let dockerfile = repository_file("Dockerfile");
     assert!(
