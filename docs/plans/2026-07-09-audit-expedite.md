@@ -59,6 +59,8 @@ Files: `.github/workflows/ci.yml`, `README.md`, `AGENTS.md`, `CHANGELOG.md`, `.g
 - [x] Re-run the contract test and `cargo fmt --check`; expect pass.
 - [x] Commit `docs: align agent and release contracts with current graphtrail`.
 
+Review fix: `Cargo.lock` pins `idna_adapter` to 1.2.1, `icu_collections`, `icu_locale_core`, `icu_normalizer`, `icu_normalizer_data`, and `icu_provider` to 2.1.1, plus `icu_properties` and `icu_properties_data` to 2.1.2. Source let chains were rewritten to Rust 1.85-compatible control flow.
+
 ### Task 5: Split sync internals without changing behavior
 
 Files: `src/store/sync.rs`; create `src/store/walk.rs`, `src/store/persist.rs`, `src/store/repo_policy.rs`, `src/store/resolve.rs`; modify `src/store/mod.rs`.

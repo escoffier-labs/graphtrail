@@ -218,8 +218,8 @@ fn resolve_call(
         );
     }
 
-    if let Some(same_file) = resolve_same_file_call(call, candidates, source_index)
-        && !same_file.is_empty()
+    if let Some(same_file) =
+        resolve_same_file_call(call, candidates, source_index).filter(|matches| !matches.is_empty())
     {
         let confidence = if call.kind == CallKind::Bare {
             CONFIDENCE_SAME_FILE_BARE
@@ -413,18 +413,20 @@ fn module_targets(source_file: &str, import: &Import, call_kind: CallKind) -> Mo
 fn python_module_prefix(source_file: &str, import: &Import, call_kind: CallKind) -> Option<String> {
     if import.module.starts_with('.') {
         let mut prefix = normalize_python_relative_module(source_file, &import.module)?;
-        if call_kind != CallKind::Bare
-            && let Some(imported_name) = import.imported_name.as_deref()
-            && !imported_name.is_empty()
+        if let Some(imported_name) = import
+            .imported_name
+            .as_deref()
+            .filter(|name| call_kind != CallKind::Bare && !name.is_empty())
         {
             append_module_path(&mut prefix, imported_name);
         }
         Some(prefix)
     } else {
         let mut prefix = import.module.replace('.', "/");
-        if call_kind != CallKind::Bare
-            && let Some(imported_name) = import.imported_name.as_deref()
-            && !imported_name.is_empty()
+        if let Some(imported_name) = import
+            .imported_name
+            .as_deref()
+            .filter(|name| call_kind != CallKind::Bare && !name.is_empty())
         {
             append_module_path(&mut prefix, imported_name);
         }

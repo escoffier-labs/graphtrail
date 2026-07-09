@@ -910,9 +910,10 @@ fn db_metadata(db: &Path) -> Result<BTreeMap<String, String>> {
 }
 
 fn expand_tilde(path: &str) -> PathBuf {
-    if (path == "~" || path.starts_with("~/"))
-        && let Some(home) = std::env::var_os("HOME")
-    {
+    let home = (path == "~" || path.starts_with("~/"))
+        .then(|| std::env::var_os("HOME"))
+        .flatten();
+    if let Some(home) = home {
         let mut expanded = PathBuf::from(home);
         if path.len() > 2 {
             expanded.push(&path[2..]);

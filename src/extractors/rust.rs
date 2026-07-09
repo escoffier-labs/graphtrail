@@ -42,11 +42,13 @@ impl LangSpec for RustSpec {
     }
 
     fn collect_import(&self, node: TsNode<'_>, source: &[u8], out: &mut Vec<Import>) {
-        if node.kind() == "use_declaration"
-            && let Some(arg) = node.child_by_field_name("argument")
-        {
-            collect_rust_use(&node_text(arg, source), node.start_position().row + 1, out);
+        if node.kind() != "use_declaration" {
+            return;
         }
+        let Some(arg) = node.child_by_field_name("argument") else {
+            return;
+        };
+        collect_rust_use(&node_text(arg, source), node.start_position().row + 1, out);
     }
 
     fn call_target(&self, node: TsNode<'_>, source: &[u8]) -> Option<CallTarget> {

@@ -138,7 +138,7 @@ fn keep_entry(entry: &DirEntry) -> bool {
 
 fn keep_entry_counted(entry: &DirEntry, hardcoded_counter: Option<&Arc<AtomicUsize>>) -> bool {
     let keep = keep_entry(entry);
-    if !keep && let Some(counter) = hardcoded_counter {
+    if let Some(counter) = hardcoded_counter.filter(|_| !keep) {
         counter.fetch_add(1, Ordering::Relaxed);
     }
     keep
