@@ -89,6 +89,8 @@ candidate's confidence and reason.
 
 ### Task 7: Final verification
 
-- [ ] Run through Brigade: `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --all-features`, `cargo build --release`.
-- [ ] Run a Docker build if the daemon is available; otherwise verify the context contract test and report the blocker.
-- [ ] Re-run `line-check` against the branch and confirm the addressed findings are gone.
+- [x] Run through Brigade: `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --all-features`, `cargo build --release`.
+- [x] Run a Docker build if the daemon is available; otherwise verify the context contract test and report the blocker.
+- [x] Re-run `line-check` against the branch and confirm the addressed findings are gone.
+
+Final verification receipt: `.brigade/work/verify-runs/20260709-205755-work-verify-687edf/receipt.json`. The exact Rust 1.85 locked check, 158 tests, release build, and Docker build passed; the independent review's four Important findings were fixed and re-reviewed.
