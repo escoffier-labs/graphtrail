@@ -1,4 +1,5 @@
-//! Integration tests for the MCP request handler against real read-only graph dbs.
+//! Integration tests for the MCP request handler with real graph dbs, read-only query connections,
+//! and the opt-in `refresh: true` incremental sync writer with its 10-second fail-open wait.
 
 use std::fs;
 use std::io::Cursor;

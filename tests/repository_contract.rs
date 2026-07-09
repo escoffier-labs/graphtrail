@@ -128,3 +128,57 @@ fn supported_toolchain_and_agent_workflow_are_documented() {
         );
     }
 }
+
+#[test]
+fn mcp_read_only_contract_distinguishes_opt_in_refresh_writes() {
+    let security = repository_file("SECURITY.md");
+    for required in [
+        "Query connections must always use `SQLITE_OPEN_READ_ONLY`",
+        "writes without `refresh: true`",
+        "Expected graph-index writes from `refresh: true` are not vulnerabilities",
+    ] {
+        assert!(
+            security.contains(required),
+            "SECURITY.md must distinguish unauthorized writes from supported refresh: {required}"
+        );
+    }
+
+    let contributing = repository_file("CONTRIBUTING.md");
+    for required in [
+        "query connections are read-only",
+        "`refresh: true` incremental sync",
+        "waits up to 10 seconds",
+        "fails open with a `refresh_error` note",
+        "timed-out worker may finish concurrently",
+    ] {
+        assert!(
+            contributing.contains(required),
+            "CONTRIBUTING.md must state the MCP refresh boundary: {required}"
+        );
+    }
+
+    let manifest = repository_file("Cargo.toml");
+    for required in [
+        "Local code-graph CLI and MCP server for coding agents",
+        "tree-sitter callers, callees, impact, context",
+        "read-only queries, opt-in index refresh",
+        "no network in the default build",
+    ] {
+        assert!(
+            manifest.contains(required),
+            "package description must preserve the GraphTrail contract: {required}"
+        );
+    }
+
+    for path in ["src/bin/graphtrail-mcp.rs", "Dockerfile", "tests/mcp.rs"] {
+        let content = repository_file(path);
+        assert!(
+            content.contains("read-only query connections"),
+            "{path} must describe read-only MCP query connections"
+        );
+        assert!(
+            content.contains("opt-in `refresh: true`"),
+            "{path} must describe the opt-in refresh writer"
+        );
+    }
+}
