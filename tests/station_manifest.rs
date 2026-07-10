@@ -19,7 +19,7 @@ fn brigade_station_manifest_is_portable_and_default_feature_safe() {
             "tools": [{
                 "name": "graphtrail",
                 "command": "graphtrail",
-                "summary": "read-only code graph CLI and context pack renderer",
+                "summary": "local code graph CLI and context pack renderer",
                 "install": ["cargo", "install", "graphtrail"],
                 "surfaces": [
                     {

@@ -8,7 +8,7 @@
     {
       "name": "graphtrail",
       "command": "graphtrail",
-      "summary": "read-only code graph CLI and context pack renderer",
+      "summary": "local code graph CLI and context pack renderer",
       "install": ["cargo", "install", "graphtrail"],
       "surfaces": [
         {
