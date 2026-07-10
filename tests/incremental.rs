@@ -6,7 +6,7 @@ use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 
-use graphtrail::extractors::common::symbol_id;
+use graphtrail::extractors::common::{hex_hash, symbol_id};
 use graphtrail::extractors::{python, rust};
 use graphtrail::query::doctor;
 use graphtrail::store::{SCHEMA_VERSION, init_schema, meta, open_db, sync_repo};
@@ -62,10 +62,8 @@ fn second_sync_is_noop_then_change_and_delete_are_detected() {
 fn sync_disambiguates_same_named_javascript_functions_on_one_line() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    write_file(
-        root.join("bundle.js"),
-        "function duplicate() {} function duplicate() {}\n",
-    );
+    let source = "function duplicate() { first(); } function duplicate() { second(); }\n";
+    write_file(root.join("bundle.js"), source);
 
     let conn = open_graph(root);
     let summary = sync_repo(&conn, root).unwrap();
@@ -77,14 +75,27 @@ fn sync_disambiguates_same_named_javascript_functions_on_one_line() {
         .unwrap()
         .collect::<Result<_, _>>()
         .unwrap();
+    let mut call_statement = conn
+        .prepare(
+            "SELECT target_name, source_id FROM pending_calls
+             WHERE target_name IN ('first', 'second') ORDER BY line, target_name",
+        )
+        .unwrap();
+    let calls: std::collections::HashMap<String, String> = call_statement
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    let legacy_id = symbol_id("bundle.js", "duplicate", 1, "function");
+    let second_start_byte = source.match_indices("function duplicate").nth(1).unwrap().0;
+    let second_id =
+        hex_hash(format!("bundle.js:duplicate:1:function:{second_start_byte}").as_bytes());
 
     assert_eq!(summary.symbols, 2);
     assert_eq!(ids.len(), 2);
     assert_ne!(ids[0], ids[1]);
-    assert!(
-        ids.contains(&symbol_id("bundle.js", "duplicate", 1, "function")),
-        "the first declaration should retain the stable legacy id"
-    );
+    assert_eq!(calls["first"], legacy_id);
+    assert_eq!(calls["second"], second_id);
 }
 
 #[test]
