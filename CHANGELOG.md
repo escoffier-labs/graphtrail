@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Make the Brigade station manifest portable with the Cargo registry install, explicit active lifecycle, default-build context, version, and doctor probes, and no feature-gated join surface.
+
 ### Fixed
 - `sync` now refuses to index the filesystem root or the user's home directory instead of walking every cache, toolchain, and vendored source tree on the machine, which held the whole pending graph in memory and could exhaust system RAM. The CLI rejects the root before creating `.graphtrail/`, and the same guard covers the MCP `refresh: true` path. Set `GRAPHTRAIL_ALLOW_UNSAFE_ROOT=1` to override.
 

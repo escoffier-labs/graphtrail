@@ -162,7 +162,7 @@ A real `stats` tool call (the server indexed GraphTrail's own source first):
 
 ## Optional integrations
 
-GraphTrail's Brigade adapter is built in: `graphtrail context "<task>" --markdown` renders a context pack as a Brigade-friendly markdown document you can drop into a handoff's evidence section.
+GraphTrail's Brigade adapter is built in: `graphtrail context "<task>" --markdown` renders a context pack as a Brigade-friendly markdown document you can drop into a handoff's evidence section. The root `station.json` installs from the Cargo registry and publishes only surfaces available in the default build; optional Code Search and MiseLedger joins stay outside the base contract.
 
 Two more adapters are gated behind optional cargo features, so the default binary stays free of network and cross-tool dependencies:
 
