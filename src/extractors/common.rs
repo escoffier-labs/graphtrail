@@ -126,7 +126,18 @@ fn visit<L: LangSpec>(
             let qualified_name = container
                 .as_ref()
                 .map_or_else(|| name.clone(), |parent| format!("{parent}.{name}"));
-            let id = symbol_id(ctx.path, &qualified_name, start_line, kind);
+            let base_id = symbol_id(ctx.path, &qualified_name, start_line, kind);
+            let id = if symbols.iter().any(|symbol| symbol.id == base_id) {
+                symbol_id_at_byte(
+                    ctx.path,
+                    &qualified_name,
+                    start_line,
+                    kind,
+                    node.start_byte(),
+                )
+            } else {
+                base_id
+            };
             symbols.push(Symbol {
                 id: id.clone(),
                 kind: kind.to_string(),
@@ -205,6 +216,16 @@ pub fn string_literal_text(node: TsNode<'_>, source: &[u8]) -> Option<String> {
 
 pub fn symbol_id(path: &str, qualified_name: &str, line: usize, kind: &str) -> String {
     hex_hash(format!("{path}:{qualified_name}:{line}:{kind}").as_bytes())
+}
+
+fn symbol_id_at_byte(
+    path: &str,
+    qualified_name: &str,
+    line: usize,
+    kind: &str,
+    start_byte: usize,
+) -> String {
+    hex_hash(format!("{path}:{qualified_name}:{line}:{kind}:{start_byte}").as_bytes())
 }
 
 pub fn hex_hash(bytes: &[u8]) -> String {
