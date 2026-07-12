@@ -1,6 +1,6 @@
 //! Context packs: entry points for a task plus their caller/callee neighborhoods.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use rusqlite::Connection;
@@ -42,6 +42,124 @@ pub fn build_context_pack_from_entry_points(
         callees,
         related_files,
     })
+}
+
+pub fn personalize_context_pack(conn: &Connection, pack: &mut ContextPack) -> Result<()> {
+    let ranks = personalized_file_ranks(conn, &pack.task, &pack.entry_points)?;
+    let rank = |path: &str| ranks.get(path).copied().unwrap_or(0.0);
+    pack.entry_points.sort_by(|a, b| {
+        rank(&b.file_path)
+            .total_cmp(&rank(&a.file_path))
+            .then_with(|| a.file_path.cmp(&b.file_path))
+            .then_with(|| a.start_line.cmp(&b.start_line))
+    });
+    pack.callers.sort_by(|a, b| {
+        rank(&b.source_file)
+            .max(rank(&b.target_file))
+            .total_cmp(&rank(&a.source_file).max(rank(&a.target_file)))
+            .then_with(|| a.source_file.cmp(&b.source_file))
+            .then_with(|| a.line.cmp(&b.line))
+    });
+    pack.callees.sort_by(|a, b| {
+        rank(&b.source_file)
+            .max(rank(&b.target_file))
+            .total_cmp(&rank(&a.source_file).max(rank(&a.target_file)))
+            .then_with(|| a.target_file.cmp(&b.target_file))
+            .then_with(|| a.line.cmp(&b.line))
+    });
+    pack.related_files
+        .sort_by(|a, b| rank(b).total_cmp(&rank(a)).then_with(|| a.cmp(b)));
+    Ok(())
+}
+
+fn personalized_file_ranks(
+    conn: &Connection,
+    task: &str,
+    entry_points: &[SearchRow],
+) -> Result<HashMap<String, f64>> {
+    let mut adjacency: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT src.file_path, dst.file_path FROM edges e
+         JOIN symbols src ON src.id = e.source
+         JOIN symbols dst ON dst.id = e.target
+         WHERE src.file_path != dst.file_path",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })?;
+    for row in rows {
+        let (source, target) = row?;
+        adjacency
+            .entry(source.clone())
+            .or_default()
+            .insert(target.clone());
+        adjacency.entry(target).or_default().insert(source);
+    }
+    let mut seeds: HashMap<String, f64> = HashMap::new();
+    for (index, entry) in entry_points.iter().enumerate() {
+        *seeds.entry(entry.file_path.clone()).or_default() += 1.0 / (index + 1) as f64;
+        adjacency.entry(entry.file_path.clone()).or_default();
+    }
+    let task_lower = task.to_lowercase();
+    let mut files = conn.prepare("SELECT path FROM files ORDER BY path")?;
+    for row in files.query_map([], |row| row.get::<_, String>(0))? {
+        let path = row?;
+        let basename = path.rsplit('/').next().unwrap_or(&path);
+        if task_lower.contains(&path.to_lowercase())
+            || task_lower.contains(&basename.to_lowercase())
+        {
+            *seeds.entry(path.clone()).or_default() += 2.0;
+        }
+        adjacency.entry(path).or_default();
+    }
+    if adjacency.is_empty() {
+        return Ok(HashMap::new());
+    }
+    if seeds.is_empty() {
+        for path in adjacency.keys() {
+            seeds.insert(path.clone(), 1.0);
+        }
+    }
+    let seed_total: f64 = seeds.values().sum();
+    let teleport: HashMap<String, f64> = adjacency
+        .keys()
+        .map(|path| {
+            (
+                path.clone(),
+                seeds.get(path).copied().unwrap_or(0.0) / seed_total,
+            )
+        })
+        .collect();
+    let mut ranks = teleport.clone();
+    const DAMPING: f64 = 0.85;
+    for _ in 0..24 {
+        let mut next: HashMap<String, f64> = teleport
+            .iter()
+            .map(|(path, weight)| (path.clone(), (1.0 - DAMPING) * weight))
+            .collect();
+        let mut dangling = 0.0;
+        for (path, score) in &ranks {
+            let neighbors = &adjacency[path];
+            if neighbors.is_empty() {
+                dangling += score;
+                continue;
+            }
+            let share = DAMPING * score / neighbors.len() as f64;
+            for neighbor in neighbors {
+                *next.entry(neighbor.clone()).or_default() += share;
+            }
+        }
+        for (path, weight) in &teleport {
+            *next.entry(path.clone()).or_default() += DAMPING * dangling * weight;
+        }
+        ranks = next;
+    }
+    // Preserve an explicit seed prior after propagation so an unrelated hub
+    // cannot displace the file the task actually named.
+    for (path, weight) in teleport {
+        *ranks.entry(path).or_default() += weight;
+    }
+    Ok(ranks)
 }
 
 /// Render a context pack as a Brigade-friendly markdown document (droppable into a handoff's
@@ -120,6 +238,40 @@ pub fn render_markdown(pack: &ContextPack) -> String {
     md
 }
 
+pub fn render_markdown_budgeted(pack: &ContextPack, max_chars: usize) -> String {
+    if max_chars == 0 {
+        return String::new();
+    }
+    let compact_task = if pack.task.chars().count() > 120 {
+        format!("{}...", pack.task.chars().take(117).collect::<String>())
+    } else {
+        pack.task.clone()
+    };
+    let mut output = format!(
+        "# Context Pack: {compact_task}\n\n_schema v{} - {} entry points - {} callers - {} callees - {} related files_\n\n",
+        pack.schema_version,
+        pack.entry_points.len(),
+        pack.callers.len(),
+        pack.callees.len(),
+        pack.related_files.len()
+    );
+    if output.len() > max_chars {
+        output.clear();
+    }
+    let full = render_markdown(pack);
+    for line in full.lines() {
+        if line.starts_with("# Context Pack:") || line.starts_with("_schema ") {
+            continue;
+        }
+        let candidate = format!("{line}\n");
+        if output.len() + candidate.len() > max_chars {
+            break;
+        }
+        output.push_str(&candidate);
+    }
+    output
+}
+
 pub(crate) fn symbol_location(row: &SearchRow) -> String {
     format!(
         "{}:{}",
@@ -147,6 +299,8 @@ fn line_range(start: usize, end: usize) -> String {
 mod tests {
     use super::*;
     use crate::model::{EdgeRow, SearchRow};
+    use crate::store::init_schema;
+    use rusqlite::params;
 
     #[test]
     fn markdown_context_renders_symbol_ranges_and_edge_locations() {
@@ -200,5 +354,85 @@ mod tests {
         assert!(md.contains("- `run` (function) - app.py:5-7"));
         assert!(md.contains("- `main` -> `run` - cli.py:12 -> app.py"));
         assert!(md.contains("- `run` -> `helper` - app.py:6 -> lib.py"));
+    }
+
+    #[test]
+    fn personalized_task_seed_outranks_unrelated_high_degree_hub() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        for (id, path) in [
+            ("seed", "src/target.rs"),
+            ("hub", "src/hub.rs"),
+            ("a", "src/a.rs"),
+            ("b", "src/b.rs"),
+            ("c", "src/c.rs"),
+        ] {
+            conn.execute(
+                "INSERT INTO files(path, content_hash, size, modified_at, indexed_at, language)
+                 VALUES (?1, 'h', 1, 1, 1, 'rust')",
+                params![path],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO symbols(id, kind, name, qualified_name, file_path, start_line, end_line, signature, content_hash)
+                 VALUES (?1, 'function', ?1, ?1, ?2, 1, 1, ?1, 'h')",
+                params![id, path],
+            )
+            .unwrap();
+        }
+        for target in ["a", "b", "c"] {
+            conn.execute(
+                "INSERT INTO edges(source, target, kind, line) VALUES ('hub', ?1, 'calls', 1)",
+                params![target],
+            )
+            .unwrap();
+        }
+        let row = |id: &str, path: &str| SearchRow {
+            id: id.to_string(),
+            kind: "function".to_string(),
+            name: id.to_string(),
+            qualified_name: id.to_string(),
+            file_path: path.to_string(),
+            start_line: 1,
+            end_line: 1,
+            signature: id.to_string(),
+            score: 1.0,
+        };
+        let mut pack = build_context_pack_from_entry_points(
+            &conn,
+            "change src/target.rs".to_string(),
+            vec![row("hub", "src/hub.rs"), row("seed", "src/target.rs")],
+        )
+        .unwrap();
+
+        let ranks = personalized_file_ranks(&conn, &pack.task, &pack.entry_points).unwrap();
+        assert!(
+            ranks["src/target.rs"] > ranks["src/hub.rs"],
+            "target={} hub={}",
+            ranks["src/target.rs"],
+            ranks["src/hub.rs"]
+        );
+
+        personalize_context_pack(&conn, &mut pack).unwrap();
+
+        assert_eq!(pack.entry_points[0].file_path, "src/target.rs");
+        assert_eq!(pack.related_files[0], "src/target.rs");
+    }
+
+    #[test]
+    fn budgeted_markdown_never_splits_lines_or_exceeds_budget() {
+        let mut pack = ContextPack {
+            schema_version: SCHEMA_VERSION,
+            task: "x".repeat(500),
+            entry_points: Vec::new(),
+            callers: Vec::new(),
+            callees: Vec::new(),
+            related_files: (0..100).map(|i| format!("src/file-{i}.rs")).collect(),
+        };
+        pack.related_files.sort();
+        let rendered = render_markdown_budgeted(&pack, 400);
+        assert!(rendered.len() <= 400);
+        assert!(rendered.ends_with('\n'));
+        assert!(!rendered.contains(&"x".repeat(121)));
     }
 }
