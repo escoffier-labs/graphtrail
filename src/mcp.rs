@@ -330,6 +330,8 @@ fn validate_tool_args(name: &str, args: &Value) -> std::result::Result<(), Strin
             require_string(args, "task")?;
             require_usize(args, "limit")?;
             require_format(args)?;
+            optional_bool(args, "personalized")?;
+            require_usize(args, "max_chars")?;
             #[cfg(feature = "codesearch")]
             {
                 optional_bool(args, "blend_code_search")?;
