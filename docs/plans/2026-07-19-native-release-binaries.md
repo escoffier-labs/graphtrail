@@ -349,7 +349,7 @@ echo "release smoke passed for $tag"
 **Files:**
 - Create: `.github/workflows/release-binaries.yml`
 
-- [ ] Create `.github/workflows/release-binaries.yml`:
+- [x] Create `.github/workflows/release-binaries.yml`:
 
 ```yaml
 name: Release binaries
@@ -567,9 +567,9 @@ jobs:
         run: bash scripts/release-smoke.sh "$TAG"
 ```
 
-- [ ] Run contract test GREEN: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_attaches_native_assets_with_checksums" --capture brigade-work`
-- [ ] Expect PASS (`test result: ok. 1 passed`).
-- [ ] Commit: `git add .github/workflows/release-binaries.yml && git commit -m "feat(release): add native binary release workflow"`
+- [x] Run contract test GREEN: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_attaches_native_assets_with_checksums" --capture brigade-work`
+- [x] Expect PASS (`test result: ok. 1 passed`).
+- [x] Commit: `git add .github/workflows/release-binaries.yml && git commit -m "feat(release): add native binary release workflow"`
 
 ---
 
