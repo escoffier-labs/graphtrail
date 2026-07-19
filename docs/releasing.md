@@ -26,15 +26,19 @@ Steps:
 1. Build with default Cargo features using `cargo build --locked --release` on each native runner (no cross-compilation).
 2. Package assets under `dist/` and smoke them from those paths before upload.
 3. Download all ten matrix artifacts in the `bundle` job, validate the exact inventory, generate `checksums.txt`, verify all ten digests, and upload one `release-bundle` artifact.
-4. In the publish job, download `release-bundle`, run `scripts/release-preflight.sh` against the tagged source, upload only missing assets to the GitHub release (never clobber existing files), and re-download every asset with `scripts/release-smoke.sh`.
+4. In the publish job, download `release-bundle`, run `scripts/release-preflight.sh` against the tagged source, look up the release asset inventory once (a lookup failure aborts instead of being treated as a missing release), upload only missing assets, run `scripts/release-smoke.sh`, and publish the release only when this run created it as a draft.
+
+Fresh tag pushes create the GitHub release as a **draft-first** publication: the workflow uploads assets and runs post-upload smoke while the release stays hidden, then calls `gh release edit --draft=false`. Existing mutable releases can still be backfilled in place.
 
 ### Backfill an existing tag
 
-To attach binaries to an immutable tag such as `v0.4.0` without moving the tag:
+GitHub currently reports `v0.4.0` with `immutable=false`, so the existing published release can be backfilled without recreating the tag. Dispatch from `master` and the workflow uploads only missing assets:
 
 ```bash
 gh workflow run release-binaries.yml --ref master -f tag=v0.4.0
 ```
+
+An actually immutable published release cannot be backfilled; cut a new patch version instead.
 
 Manual `workflow_dispatch` runs publish only from `refs/heads/master`.
 

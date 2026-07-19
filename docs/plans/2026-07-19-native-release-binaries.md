@@ -1,6 +1,6 @@
 # Native Release Binaries Plan (Brigade issue #354)
 
-**Goal:** Ship native `graphtrail` and `graphtrail-mcp` binaries for five GitHub-hosted targets through `.github/workflows/release-binaries.yml`, backfill the existing immutable `v0.4.0` GitHub release, and lock the contract in `tests/repository_contract.rs`.
+**Goal:** Ship native `graphtrail` and `graphtrail-mcp` binaries for five GitHub-hosted targets through `.github/workflows/release-binaries.yml`, backfill the existing mutable `v0.4.0` GitHub release, and lock the contract in `tests/repository_contract.rs`.
 
 **Architecture:** A separate binary-release workflow builds on native hosted runners (no cross-compilation, no self-hosted runners), bundles ten platform-named binaries plus `checksums.txt` in a read-only `bundle` job that always runs after the matrix, and publishes from that bundle on tag push or `workflow_dispatch` from `master` only. Pull requests exercise the full build matrix plus bundle with `contents: read` only. Crates.io publication stays in `publish.yml`.
 
@@ -25,8 +25,13 @@
 | Bundle job | Always runs after matrix; read-only; produces `release-bundle` artifact | `evidence+judgment` |
 | PR behavior | Full matrix build/smoke/bundle; no `contents: write` | `evidence+judgment` |
 | Publish triggers | `push: tags: v*` and `workflow_dispatch` with `tag` input (dispatch only from `refs/heads/master`) | `evidence+judgment` |
-| `v0.4.0` backfill | Manual dispatch attaches assets to the existing immutable tag/release | `evidence+judgment` + `evidence` (release exists with zero assets) |
+| `v0.4.0` backfill | Manual dispatch attaches assets to the existing published release while GitHub reports `immutable=false` | `evidence+judgment` + `evidence` (release exists with zero assets; API `immutable=false`) |
 | Upload policy | Skip assets that already exist; never `--clobber` | `evidence+judgment` |
+| Release publication | Fresh releases are created as drafts, smoke-tested, then published; existing mutable releases (for example `v0.4.0` with `immutable=false`) keep the backfill path | `evidence` (GitHub API reports `v0.4.0` `immutable=false`) |
+| Immutable published releases | Cannot be backfilled; fix forward with a new patch version | `evidence+judgment` |
+| Concurrency | Same ref/tag group with `cancel-in-progress: false` | `evidence+judgment` |
+| Asset inventory lookup | Single `gh release view` before the upload loop; lookup failure aborts | `evidence+judgment` |
+| Windows MSVC check | Coerce `rustc -vV` with `Out-String` before scalar `-notmatch` | `evidence` |
 | Post-upload verify | Re-download all release assets; `sha256sum -c checksums.txt` | `stated-constraint` |
 | Test order | Extend `tests/repository_contract.rs` first (RED), then workflow, then docs contract (RED), then docs | `stated-constraint` |
 

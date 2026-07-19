@@ -544,6 +544,86 @@ fn binary_release_attaches_native_assets_with_checksums() {
         "workflow-level permissions must not grant contents: write to every job"
     );
 
+    let preamble = workflow
+        .split("jobs:")
+        .next()
+        .expect("release-binaries workflow must declare jobs");
+    assert!(
+        preamble.contains("concurrency:"),
+        "release-binaries workflow must declare top-level concurrency"
+    );
+    assert!(
+        preamble.contains("cancel-in-progress: false"),
+        "release-binaries workflow must not cancel in-progress runs for the same tag"
+    );
+    assert!(
+        preamble.contains("github.ref"),
+        "release-binaries concurrency must key off the release ref or tag"
+    );
+
+    let build = release_workflow_job(&workflow, "build");
+    let msvc_check = build
+        .split("Assert MSVC host toolchain")
+        .nth(1)
+        .and_then(|section| section.split("Build release binaries").next())
+        .expect("build job must assert the MSVC host toolchain before building");
+    assert!(
+        msvc_check.contains("rustc -vV | Out-String"),
+        "Windows MSVC check must coerce rustc -vV output to a scalar with Out-String"
+    );
+    assert!(
+        !msvc_check.lines().any(|line| {
+            line.contains("$verbose = rustc -vV") && !line.contains("Out-String")
+        }),
+        "Windows MSVC check must not pass rustc -vV arrays directly to -notmatch"
+    );
+    assert!(
+        msvc_check.contains("-notmatch"),
+        "Windows MSVC check must validate the host triple with -notmatch"
+    );
+
+    let publish = release_workflow_job(&workflow, "publish");
+    assert!(
+        publish.contains("--draft"),
+        "publish job must create missing releases as drafts"
+    );
+    assert!(
+        publish.contains("gh release edit"),
+        "publish job must publish draft releases only after upload and smoke"
+    );
+    let smoke_step = publish
+        .find("scripts/release-smoke.sh")
+        .expect("publish job must run post-upload smoke");
+    let publish_step = publish
+        .find("gh release edit")
+        .expect("publish job must publish draft releases after smoke");
+    assert!(
+        smoke_step < publish_step,
+        "publish job must smoke uploaded assets before publishing a draft release"
+    );
+
+    let upload_step = publish
+        .split("Upload missing release assets")
+        .nth(1)
+        .and_then(|section| section.split("Verify published checksums").next())
+        .expect("publish job must upload missing assets before post-upload smoke");
+    assert!(
+        upload_step.contains("existing_assets="),
+        "publish job must fetch the release asset inventory once before upload"
+    );
+    assert!(
+        upload_step.contains("gh release view") && upload_step.matches("gh release view").count() == 1,
+        "publish job must perform a single fail-fast gh release view lookup before the upload loop"
+    );
+    assert!(
+        !upload_step.contains("for file in dist/*; do")
+            || !upload_step
+                .split("for file in dist/*; do")
+                .nth(1)
+                .is_some_and(|loop_body| loop_body.contains("gh release view")),
+        "publish job must not re-query gh release view inside the upload loop"
+    );
+
     let smoke = repository_file("scripts/release-smoke.sh");
     for required in [
         "graphtrail-linux-amd64",
@@ -579,6 +659,9 @@ fn binary_release_documentation_covers_native_assets() {
         "workflow_dispatch",
         "release-bundle",
         "refs/heads/master",
+        "immutable=false",
+        "draft-first",
+        "cannot be backfilled",
     ] {
         assert!(
             recovery.contains(required),

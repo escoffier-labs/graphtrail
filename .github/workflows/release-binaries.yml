@@ -19,6 +19,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: release-binaries-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -63,7 +67,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $verbose = rustc -vV
+          $verbose = rustc -vV | Out-String
           if ($verbose -notmatch 'host: .+-pc-windows-msvc') {
             throw "expected MSVC Windows host toolchain, got:`n$verbose"
           }
@@ -188,26 +192,43 @@ jobs:
           path: dist
 
       - name: Upload missing release assets
+        id: upload
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.value }}
         shell: bash
         run: |
           set -euo pipefail
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --verify-tag --title "$TAG" --notes "Native binary release"
+          created_draft=false
+          if existing_assets="$(gh release view "$TAG" --json assets --jq '.assets[].name' 2>release_view.err)"; then
+            :
+          elif grep -Eqi 'release not found|not found' release_view.err; then
+            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes "Native binary release"
+            created_draft=true
+            existing_assets=""
+          else
+            cat release_view.err >&2
+            exit 1
           fi
           for file in dist/*; do
             name="$(basename "$file")"
-            if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
+            if [[ -n "$existing_assets" ]] && printf '%s\n' "$existing_assets" | grep -Fxq "$name"; then
               echo "skip existing asset: $name"
               continue
             fi
             gh release upload "$TAG" "$file"
           done
+          echo "created_draft=$created_draft" >> "$GITHUB_OUTPUT"
 
       - name: Verify published checksums
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.value }}
         run: bash scripts/release-smoke.sh "$TAG"
+
+      - name: Publish draft release
+        if: steps.upload.outputs.created_draft == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.value }}
+        run: gh release edit "$TAG" --draft=false
