@@ -1,0 +1,234 @@
+name: Release binaries
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release-binaries.yml"
+      - "scripts/release-smoke.sh"
+      - "tests/repository_contract.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to attach binaries to, for example v0.4.0
+        required: true
+        type: string
+
+concurrency:
+  group: release-binaries-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.asset }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            asset: linux-amd64
+            ext: ""
+          - os: ubuntu-22.04-arm
+            asset: linux-arm64
+            ext: ""
+          - os: macos-15-intel
+            asset: darwin-amd64
+            ext: ""
+          - os: macos-15
+            asset: darwin-arm64
+            ext: ""
+          - os: windows-latest
+            asset: windows-amd64
+            ext: ".exe"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.asset }}
+
+      - name: Assert MSVC host toolchain
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $verbose = rustc -vV | Out-String
+          if ($verbose -notmatch 'host: .+-pc-windows-msvc') {
+            throw "expected MSVC Windows host toolchain, got:`n$verbose"
+          }
+
+      - name: Build release binaries
+        run: cargo build --locked --release --bin graphtrail --bin graphtrail-mcp
+
+      - name: Package native assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp "target/release/graphtrail${{ matrix.ext }}" \
+            "dist/graphtrail-${{ matrix.asset }}${{ matrix.ext }}"
+          cp "target/release/graphtrail-mcp${{ matrix.ext }}" \
+            "dist/graphtrail-mcp-${{ matrix.asset }}${{ matrix.ext }}"
+
+      - name: Smoke test packaged binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          "./dist/graphtrail-${{ matrix.asset }}${{ matrix.ext }}" --version
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
+            | "./dist/graphtrail-mcp-${{ matrix.asset }}${{ matrix.ext }}" \
+            | grep -F '"name":"graphtrail"'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/*
+
+  bundle:
+    name: bundle release artifacts
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble dist and validate inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          shopt -s nullglob
+          for file in artifacts/*/*; do
+            cp "$file" "dist/$(basename "$file")"
+          done
+          expected=(
+            graphtrail-linux-amd64
+            graphtrail-mcp-linux-amd64
+            graphtrail-linux-arm64
+            graphtrail-mcp-linux-arm64
+            graphtrail-darwin-amd64
+            graphtrail-mcp-darwin-amd64
+            graphtrail-darwin-arm64
+            graphtrail-mcp-darwin-arm64
+            graphtrail-windows-amd64.exe
+            graphtrail-mcp-windows-amd64.exe
+          )
+          actual=($(printf '%s\n' dist/* | LC_ALL=C sort | xargs -n1 basename))
+          if [[ "${#actual[@]}" -ne 10 ]]; then
+            echo "expected exactly ten binaries, found ${#actual[@]}" >&2
+            printf '%s\n' "${actual[@]}" >&2
+            exit 1
+          fi
+          for name in "${expected[@]}"; do
+            [[ -f "dist/$name" ]] || { echo "missing bundled asset: $name" >&2; exit 1; }
+          done
+
+      - name: Generate and verify checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum graphtrail-* > checksums.txt
+          sha256sum -c checksums.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: dist/*
+
+  publish:
+    name: publish and verify
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/master')
+    needs: bundle
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "value=$DISPATCH_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify release identity
+        env:
+          TAG: ${{ steps.tag.outputs.value }}
+        run: bash scripts/release-preflight.sh "$TAG" .
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: dist
+
+      - name: Upload missing release assets
+        id: upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.value }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          created_draft=false
+          if existing_assets="$(gh release view "$TAG" --json assets --jq '.assets[].name' 2>release_view.err)"; then
+            :
+          elif grep -Eqi 'release not found|not found' release_view.err; then
+            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes "Native binary release"
+            created_draft=true
+            existing_assets=""
+          else
+            cat release_view.err >&2
+            exit 1
+          fi
+          for file in dist/*; do
+            name="$(basename "$file")"
+            if [[ -n "$existing_assets" ]] && printf '%s\n' "$existing_assets" | grep -Fxq "$name"; then
+              echo "skip existing asset: $name"
+              continue
+            fi
+            gh release upload "$TAG" "$file"
+          done
+          echo "created_draft=$created_draft" >> "$GITHUB_OUTPUT"
+
+      - name: Verify published checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.value }}
+        run: bash scripts/release-smoke.sh "$TAG"
+
+      - name: Publish draft release
+        if: steps.upload.outputs.created_draft == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.value }}
+        run: gh release edit "$TAG" --draft=false

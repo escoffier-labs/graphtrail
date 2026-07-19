@@ -1,6 +1,69 @@
-use std::{collections::HashSet, fs, path::Path};
+use std::{collections::HashMap, collections::HashSet, fs, path::Path};
 
 use serde_json::Value;
+
+fn release_workflow_job<'a>(workflow: &'a str, job: &str) -> &'a str {
+    let marker = format!("  {job}:");
+    let start = workflow
+        .find(&marker)
+        .unwrap_or_else(|| panic!("release workflow must declare the {job} job"));
+    let rest = &workflow[start + marker.len()..];
+    let end = match job {
+        "build" => rest
+            .find("\n  bundle:")
+            .unwrap_or_else(|| panic!("release workflow must declare a bundle job after build")),
+        "bundle" => rest
+            .find("\n  publish:")
+            .unwrap_or_else(|| panic!("release workflow must declare a publish job after bundle")),
+        "publish" => rest.len(),
+        other => panic!("unsupported release workflow job: {other}"),
+    };
+    &rest[..end]
+}
+
+fn release_matrix_os_asset_pairs(workflow: &str) -> Vec<(String, String)> {
+    let build = release_workflow_job(workflow, "build");
+    let include = build
+        .split("include:")
+        .nth(1)
+        .expect("release build job must declare a matrix include");
+    let include = include
+        .split("steps:")
+        .next()
+        .expect("matrix include must precede job steps");
+
+    let mut pairs = Vec::new();
+    let mut current_os = None;
+    for line in include.lines() {
+        let trimmed = line.trim();
+        let runner = trimmed
+            .strip_prefix("- os: ")
+            .or_else(|| trimmed.strip_prefix("os: "));
+        if let Some(os) = runner {
+            current_os = Some(os.to_string());
+        } else if let Some(asset) = trimmed.strip_prefix("asset: ") {
+            let os = current_os
+                .take()
+                .expect("matrix asset must follow its runner label");
+            pairs.push((os, asset.to_string()));
+        }
+    }
+    pairs
+}
+
+fn release_job_permissions(workflow: &str, job: &str) -> String {
+    let section = release_workflow_job(workflow, job);
+    let permissions = section
+        .split("permissions:")
+        .nth(1)
+        .unwrap_or_else(|| panic!("release {job} job must declare permissions"));
+    permissions
+        .lines()
+        .map(str::trim)
+        .find(|line| line.starts_with("contents:"))
+        .unwrap_or_else(|| panic!("release {job} job must declare contents permissions"))
+        .to_string()
+}
 
 fn repository_file(path: impl AsRef<Path>) -> String {
     fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(path))
@@ -343,6 +406,271 @@ fn release_publication_is_preflighted_protected_and_recoverable() {
         assert!(
             recovery.contains(required),
             "release recovery guide must preserve: {required}"
+        );
+    }
+}
+
+#[test]
+fn binary_release_attaches_native_assets_with_checksums() {
+    assert!(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join(".github/workflows/release-binaries.yml")
+            .is_file(),
+        "binary release contract must include .github/workflows/release-binaries.yml"
+    );
+    assert!(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("scripts/release-smoke.sh")
+            .is_file(),
+        "binary release contract must include scripts/release-smoke.sh"
+    );
+
+    let workflow = repository_file(".github/workflows/release-binaries.yml");
+    for required in [
+        "pull_request:",
+        "push:",
+        "tags:",
+        "- \"v*\"",
+        "workflow_dispatch:",
+        "os: ubuntu-22.04",
+        "os: ubuntu-22.04-arm",
+        "os: macos-15-intel",
+        "os: macos-15",
+        "os: windows-latest",
+        "cargo build --locked --release",
+        "--bin graphtrail",
+        "--bin graphtrail-mcp",
+        "asset: linux-amd64",
+        "asset: linux-arm64",
+        "asset: darwin-amd64",
+        "asset: darwin-arm64",
+        "asset: windows-amd64",
+        "dist/graphtrail-${{ matrix.asset }}",
+        "dist/graphtrail-mcp-${{ matrix.asset }}",
+        r#"ext: ".exe""#,
+        "pc-windows-msvc",
+        "needs: build",
+        "needs: bundle",
+        "name: release-bundle",
+        "graphtrail-linux-amd64",
+        "graphtrail-mcp-linux-amd64",
+        "graphtrail-linux-arm64",
+        "graphtrail-mcp-linux-arm64",
+        "graphtrail-darwin-amd64",
+        "graphtrail-mcp-darwin-amd64",
+        "graphtrail-darwin-arm64",
+        "graphtrail-mcp-darwin-arm64",
+        "graphtrail-windows-amd64.exe",
+        "graphtrail-mcp-windows-amd64.exe",
+        "checksums.txt",
+        "sha256sum graphtrail-* > checksums.txt",
+        "sha256sum -c checksums.txt",
+        "scripts/release-preflight.sh",
+        "scripts/release-smoke.sh",
+        "--verify-tag",
+        "refs/heads/master",
+        "if: github.event_name != 'pull_request'",
+    ] {
+        assert!(
+            workflow.contains(required),
+            "release-binaries workflow must preserve the native asset contract: {required}"
+        );
+    }
+    assert!(
+        !workflow.contains("--target"),
+        "release-binaries workflow must not cross-compile with --target"
+    );
+    assert!(
+        !workflow.contains("self-hosted"),
+        "release-binaries workflow must use only GitHub-hosted runners"
+    );
+    assert!(
+        !workflow.contains("--clobber"),
+        "release-binaries workflow must not clobber existing release assets"
+    );
+
+    let expected_runner_by_asset = HashMap::from([
+        ("linux-amd64".to_string(), "ubuntu-22.04".to_string()),
+        ("linux-arm64".to_string(), "ubuntu-22.04-arm".to_string()),
+        ("darwin-amd64".to_string(), "macos-15-intel".to_string()),
+        ("darwin-arm64".to_string(), "macos-15".to_string()),
+        ("windows-amd64".to_string(), "windows-latest".to_string()),
+    ]);
+    let runner_by_asset: HashMap<_, _> = release_matrix_os_asset_pairs(&workflow)
+        .into_iter()
+        .map(|(os, asset)| (asset, os))
+        .collect();
+    assert_eq!(
+        runner_by_asset, expected_runner_by_asset,
+        "release matrix must pair each asset with its native GitHub-hosted runner"
+    );
+
+    let bundle = release_workflow_job(&workflow, "bundle");
+    assert!(
+        bundle.contains("sha256sum graphtrail-* > checksums.txt"),
+        "bundle job must generate checksums.txt from the ten graphtrail assets"
+    );
+    assert!(
+        bundle.contains("sha256sum -c checksums.txt"),
+        "bundle job must verify all ten digests before upload"
+    );
+    assert!(
+        !release_workflow_job(&workflow, "publish")
+            .contains("sha256sum graphtrail-* > checksums.txt"),
+        "publish job must download the bundled checksums instead of regenerating them"
+    );
+
+    assert_eq!(
+        release_job_permissions(&workflow, "build"),
+        "contents: read",
+        "build job must not receive repository write permissions"
+    );
+    assert_eq!(
+        release_job_permissions(&workflow, "bundle"),
+        "contents: read",
+        "bundle job must remain read-only"
+    );
+    assert_eq!(
+        release_job_permissions(&workflow, "publish"),
+        "contents: write",
+        "publish job must retain repository write permissions"
+    );
+    assert!(
+        !workflow
+            .split("jobs:")
+            .next()
+            .expect("release-binaries workflow must declare jobs")
+            .contains("contents: write"),
+        "workflow-level permissions must not grant contents: write to every job"
+    );
+
+    let preamble = workflow
+        .split("jobs:")
+        .next()
+        .expect("release-binaries workflow must declare jobs");
+    assert!(
+        preamble.contains("concurrency:"),
+        "release-binaries workflow must declare top-level concurrency"
+    );
+    assert!(
+        preamble.contains("cancel-in-progress: false"),
+        "release-binaries workflow must not cancel in-progress runs for the same tag"
+    );
+    assert!(
+        preamble.contains("github.event.inputs.tag") && preamble.contains("github.ref_name"),
+        "release-binaries concurrency must use the workflow_dispatch tag input when present and github.ref_name otherwise"
+    );
+    assert!(
+        !preamble.contains("group: release-binaries-${{ github.ref }}"),
+        "release-binaries concurrency must not key off github.ref, which diverges between tag push and workflow_dispatch"
+    );
+
+    let build = release_workflow_job(&workflow, "build");
+    let msvc_check = build
+        .split("Assert MSVC host toolchain")
+        .nth(1)
+        .and_then(|section| section.split("Build release binaries").next())
+        .expect("build job must assert the MSVC host toolchain before building");
+    assert!(
+        msvc_check.contains("rustc -vV | Out-String"),
+        "Windows MSVC check must coerce rustc -vV output to a scalar with Out-String"
+    );
+    assert!(
+        !msvc_check
+            .lines()
+            .any(|line| { line.contains("$verbose = rustc -vV") && !line.contains("Out-String") }),
+        "Windows MSVC check must not pass rustc -vV arrays directly to -notmatch"
+    );
+    assert!(
+        msvc_check.contains("-notmatch"),
+        "Windows MSVC check must validate the host triple with -notmatch"
+    );
+
+    let publish = release_workflow_job(&workflow, "publish");
+    assert!(
+        publish.contains("--draft"),
+        "publish job must create missing releases as drafts"
+    );
+    assert!(
+        publish.contains("gh release edit"),
+        "publish job must publish draft releases only after upload and smoke"
+    );
+    let smoke_step = publish
+        .find("scripts/release-smoke.sh")
+        .expect("publish job must run post-upload smoke");
+    let publish_step = publish
+        .find("gh release edit")
+        .expect("publish job must publish draft releases after smoke");
+    assert!(
+        smoke_step < publish_step,
+        "publish job must smoke uploaded assets before publishing a draft release"
+    );
+
+    let upload_step = publish
+        .split("Upload missing release assets")
+        .nth(1)
+        .and_then(|section| section.split("Verify published checksums").next())
+        .expect("publish job must upload missing assets before post-upload smoke");
+    assert!(
+        upload_step.contains("existing_assets="),
+        "publish job must fetch the release asset inventory once before upload"
+    );
+    assert!(
+        upload_step.contains("gh release view")
+            && upload_step.matches("gh release view").count() == 1,
+        "publish job must perform a single fail-fast gh release view lookup before the upload loop"
+    );
+    assert!(
+        !upload_step.contains("for file in dist/*; do")
+            || !upload_step
+                .split("for file in dist/*; do")
+                .nth(1)
+                .is_some_and(|loop_body| loop_body.contains("gh release view")),
+        "publish job must not re-query gh release view inside the upload loop"
+    );
+
+    let smoke = repository_file("scripts/release-smoke.sh");
+    for required in [
+        "graphtrail-linux-amd64",
+        "graphtrail-mcp-linux-amd64",
+        "checksums.txt",
+        "sha256sum -c",
+        "--version",
+        "initialize",
+    ] {
+        assert!(
+            smoke.contains(required),
+            "release smoke script must verify downloaded assets: {required}"
+        );
+    }
+}
+
+#[test]
+fn binary_release_documentation_covers_native_assets() {
+    let recovery = repository_file("docs/releasing.md");
+    for required in [
+        ".github/workflows/release-binaries.yml",
+        "graphtrail-linux-amd64",
+        "graphtrail-mcp-linux-amd64",
+        "checksums.txt",
+        "ubuntu-22.04",
+        "ubuntu-22.04-arm",
+        "linux-arm64",
+        "macos-15-intel",
+        "darwin-amd64",
+        "macos-15",
+        "darwin-arm64",
+        "windows-amd64",
+        "workflow_dispatch",
+        "release-bundle",
+        "refs/heads/master",
+        "immutable=false",
+        "draft-first",
+        "cannot be backfilled",
+    ] {
+        assert!(
+            recovery.contains(required),
+            "release guide must document native binary assets: {required}"
         );
     }
 }
