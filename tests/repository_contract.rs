@@ -597,6 +597,12 @@ fn binary_release_attaches_native_assets_with_checksums() {
         .and_then(|before| before.rsplit("uses: actions/checkout@v4").next())
         .expect("publish job must declare a tagged-source checkout");
     assert!(
+        tagged_checkout.contains(
+            "ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}"
+        ),
+        "tagged-source checkout must pin ref to workflow_dispatch inputs.tag with github.ref fallback"
+    );
+    assert!(
         tagged_checkout.contains("fetch-depth: 0"),
         "tagged-source checkout must fetch full history for release-preflight"
     );
