@@ -703,14 +703,14 @@ Never reuse a version for different source. If tagged source itself is wrong, le
 **Files:**
 - Modify: `CHANGELOG.md`
 
-- [ ] Under `## [Unreleased]`, add:
+- [x] Under `## [Unreleased]`, add:
 
 ```markdown
 ### Added
 - Native binary releases through `.github/workflows/release-binaries.yml` for `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`, and `windows-amd64`, with `graphtrail-<platform>` and `graphtrail-mcp-<platform>` assets plus `checksums.txt`.
 ```
 
-- [ ] Commit: `git add CHANGELOG.md && git commit -m "docs(changelog): note native binary release workflow"`
+- [x] Commit: `git add CHANGELOG.md && git commit -m "docs(changelog): note native binary release workflow"`
 
 ---
 

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Native binary releases through `.github/workflows/release-binaries.yml` for `linux-amd64`, `linux-arm64`, `darwin-amd64`, `darwin-arm64`, and `windows-amd64`, with `graphtrail-<platform>` and `graphtrail-mcp-<platform>` assets plus `checksums.txt`.
+
 ## [0.4.0] - 2026-07-17
 
 ### Fixed
