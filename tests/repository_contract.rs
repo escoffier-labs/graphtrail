@@ -557,8 +557,12 @@ fn binary_release_attaches_native_assets_with_checksums() {
         "release-binaries workflow must not cancel in-progress runs for the same tag"
     );
     assert!(
-        preamble.contains("github.ref"),
-        "release-binaries concurrency must key off the release ref or tag"
+        preamble.contains("github.event.inputs.tag") && preamble.contains("github.ref_name"),
+        "release-binaries concurrency must use the workflow_dispatch tag input when present and github.ref_name otherwise"
+    );
+    assert!(
+        !preamble.contains("group: release-binaries-${{ github.ref }}"),
+        "release-binaries concurrency must not key off github.ref, which diverges between tag push and workflow_dispatch"
     );
 
     let build = release_workflow_job(&workflow, "build");

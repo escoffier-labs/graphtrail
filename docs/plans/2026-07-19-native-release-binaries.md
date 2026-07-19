@@ -29,7 +29,7 @@
 | Upload policy | Skip assets that already exist; never `--clobber` | `evidence+judgment` |
 | Release publication | Fresh releases are created as drafts, smoke-tested, then published; existing mutable releases (for example `v0.4.0` with `immutable=false`) keep the backfill path | `evidence` (GitHub API reports `v0.4.0` `immutable=false`) |
 | Immutable published releases | Cannot be backfilled; fix forward with a new patch version | `evidence+judgment` |
-| Concurrency | Same ref/tag group with `cancel-in-progress: false` | `evidence+judgment` |
+| Concurrency | Same tag group via `github.event.inputs.tag \|\| github.ref_name` with `cancel-in-progress: false` | `evidence+judgment` |
 | Asset inventory lookup | Single `gh release view` before the upload loop; lookup failure aborts | `evidence+judgment` |
 | Windows MSVC check | Coerce `rustc -vV` with `Out-String` before scalar `-notmatch` | `evidence` |
 | Post-upload verify | Re-download all release assets; `sha256sum -c checksums.txt` | `stated-constraint` |
