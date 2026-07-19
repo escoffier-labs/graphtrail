@@ -572,9 +572,9 @@ fn binary_release_attaches_native_assets_with_checksums() {
         "Windows MSVC check must coerce rustc -vV output to a scalar with Out-String"
     );
     assert!(
-        !msvc_check.lines().any(|line| {
-            line.contains("$verbose = rustc -vV") && !line.contains("Out-String")
-        }),
+        !msvc_check
+            .lines()
+            .any(|line| { line.contains("$verbose = rustc -vV") && !line.contains("Out-String") }),
         "Windows MSVC check must not pass rustc -vV arrays directly to -notmatch"
     );
     assert!(
@@ -612,7 +612,8 @@ fn binary_release_attaches_native_assets_with_checksums() {
         "publish job must fetch the release asset inventory once before upload"
     );
     assert!(
-        upload_step.contains("gh release view") && upload_step.matches("gh release view").count() == 1,
+        upload_step.contains("gh release view")
+            && upload_step.matches("gh release view").count() == 1,
         "publish job must perform a single fail-fast gh release view lookup before the upload loop"
     );
     assert!(
