@@ -33,6 +33,7 @@
 | Asset inventory lookup | Single `gh release view` before the upload loop; lookup failure aborts | `evidence+judgment` |
 | Windows MSVC check | Coerce `rustc -vV` with `Out-String` before scalar `-notmatch` | `evidence` |
 | Post-upload verify | Re-download all release assets; `sha256sum -c checksums.txt` | `stated-constraint` |
+| Backfill checkout | Publish job keeps workflow source at root, checks out the tag into `tagged-source` with `fetch-depth: 0`, runs tagged `release-preflight` there, and runs current `release-smoke.sh` from root | `evidence` (run `29675398558` failed when `v0.4.0` checkout lacked `scripts/release-smoke.sh`) |
 | Test order | Extend `tests/repository_contract.rs` first (RED), then workflow, then docs contract (RED), then docs | `stated-constraint` |
 
 ## File map

@@ -588,6 +588,50 @@ fn binary_release_attaches_native_assets_with_checksums() {
 
     let publish = release_workflow_job(&workflow, "publish");
     assert!(
+        publish.contains("path: tagged-source"),
+        "publish job must checkout the release tag into tagged-source"
+    );
+    let tagged_checkout = publish
+        .split("path: tagged-source")
+        .next()
+        .and_then(|before| before.rsplit("uses: actions/checkout@v4").next())
+        .expect("publish job must declare a tagged-source checkout");
+    assert!(
+        tagged_checkout.contains("fetch-depth: 0"),
+        "tagged-source checkout must fetch full history for release-preflight"
+    );
+    assert!(
+        publish.contains("tagged-source/scripts/release-preflight.sh"),
+        "publish job must run release-preflight from the tagged source tree"
+    );
+    assert!(
+        publish.contains("tagged-source/scripts/release-preflight.sh \"$TAG\" tagged-source"),
+        "publish job must verify release identity against tagged-source"
+    );
+    assert!(
+        !publish.contains("run: bash scripts/release-preflight.sh"),
+        "publish job must not run release-preflight from workflow source"
+    );
+    assert!(
+        publish.contains("run: bash scripts/release-smoke.sh"),
+        "publish job must run release-smoke from workflow source at the workspace root"
+    );
+    let publish_checkouts: Vec<_> = publish.match_indices("uses: actions/checkout@v4").collect();
+    assert_eq!(
+        publish_checkouts.len(),
+        2,
+        "publish job must keep workflow source at the root and check out the tag separately"
+    );
+    let root_checkout = &publish[..publish_checkouts[1].0];
+    assert!(
+        !root_checkout.contains("path: tagged-source"),
+        "workflow source checkout must remain at the workspace root"
+    );
+    assert!(
+        !root_checkout.contains("ref: ${{ github.event_name == 'workflow_dispatch'"),
+        "workflow source checkout must not be pinned to the release tag"
+    );
+    assert!(
         publish.contains("--draft"),
         "publish job must create missing releases as drafts"
     );
@@ -667,6 +711,9 @@ fn binary_release_documentation_covers_native_assets() {
         "immutable=false",
         "draft-first",
         "cannot be backfilled",
+        "tagged-source",
+        "workflow source",
+        "29675398558",
     ] {
         assert!(
             recovery.contains(required),

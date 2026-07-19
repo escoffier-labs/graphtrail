@@ -26,9 +26,15 @@ Steps:
 1. Build with default Cargo features using `cargo build --locked --release` on each native runner (no cross-compilation).
 2. Package assets under `dist/` and smoke them from those paths before upload.
 3. Download all ten matrix artifacts in the `bundle` job, validate the exact inventory, generate `checksums.txt`, verify all ten digests, and upload one `release-bundle` artifact.
-4. In the publish job, download `release-bundle`, run `scripts/release-preflight.sh` against the tagged source, look up the release asset inventory once (a lookup failure aborts instead of being treated as a missing release), upload only missing assets, run `scripts/release-smoke.sh`, and publish the release only when this run created it as a draft.
+4. In the publish job, keep the workflow source at the workspace root, check out the release tag into `tagged-source` with `fetch-depth: 0`, run `tagged-source/scripts/release-preflight.sh` against that tree, download `release-bundle`, look up the release asset inventory once (a lookup failure aborts instead of being treated as a missing release), upload only missing assets, run `scripts/release-smoke.sh` from the workflow source, and publish the release only when this run created it as a draft.
 
 Fresh tag pushes create the GitHub release as a **draft-first** publication: the workflow uploads assets and runs post-upload smoke while the release stays hidden, then calls `gh release edit --draft=false`. Existing mutable releases can still be backfilled in place.
+
+### Backfill checkout rule
+
+Backfill dispatches run from `master`, so the publish job must not rely on a single checkout of the release tag at the workspace root. Older tags such as `v0.4.0` predate `scripts/release-smoke.sh`; GitHub Actions run `29675398558` failed with `bash: scripts/release-smoke.sh: No such file or directory` after checking out only `v0.4.0`.
+
+Recovery: keep the workflow source checkout at the repository root (current `master` workflow and scripts), check out the requested tag into `tagged-source` with `fetch-depth: 0`, run the tagged `release-preflight` against `tagged-source`, and run the current `scripts/release-smoke.sh` from the root after upload.
 
 ### Backfill an existing tag
 

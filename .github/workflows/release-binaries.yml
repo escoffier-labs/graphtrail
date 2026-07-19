@@ -164,9 +164,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
           fetch-depth: 0
+          path: tagged-source
 
       - name: Resolve release tag
         id: tag
@@ -184,7 +187,7 @@ jobs:
       - name: Verify release identity
         env:
           TAG: ${{ steps.tag.outputs.value }}
-        run: bash scripts/release-preflight.sh "$TAG" .
+        run: bash tagged-source/scripts/release-preflight.sh "$TAG" tagged-source
 
       - uses: actions/download-artifact@v4
         with:
