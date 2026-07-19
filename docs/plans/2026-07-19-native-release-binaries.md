@@ -65,7 +65,7 @@ Unchanged: `.github/workflows/publish.yml`, `scripts/release-preflight.sh`, `scr
 **Files:**
 - Modify: `tests/repository_contract.rs`
 
-- [ ] Add workflow helper functions immediately after the imports:
+- [x] Add workflow helper functions immediately after the imports:
 
 ```rust
 fn release_workflow_job<'a>(workflow: &'a str, job: &str) -> &'a str {
@@ -132,13 +132,13 @@ fn release_job_permissions(workflow: &str, job: &str) -> String {
 }
 ```
 
-- [ ] Add `HashMap` to the `use` line:
+- [x] Add `HashMap` to the `use` line:
 
 ```rust
 use std::{collections::HashMap, collections::HashSet, fs, path::Path};
 ```
 
-- [ ] Append the failing test before `agent_startup_requires_skill_selection_before_brigade_commands`:
+- [x] Append the failing test before `agent_startup_requires_skill_selection_before_brigade_commands`:
 
 ```rust
 #[test]
@@ -291,9 +291,9 @@ fn binary_release_attaches_native_assets_with_checksums() {
 }
 ```
 
-- [ ] Run RED: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_attaches_native_assets_with_checksums" --capture brigade-work`
-- [ ] Expect FAIL with messages such as `binary release contract must include .github/workflows/release-binaries.yml` and `binary release contract must include scripts/release-smoke.sh`.
-- [ ] Commit: `git add tests/repository_contract.rs && git commit -m "test(release): require native binary release contract"`
+- [x] Run RED: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_attaches_native_assets_with_checksums" --capture brigade-work`
+- [x] Expect FAIL with messages such as `binary release contract must include .github/workflows/release-binaries.yml` and `binary release contract must include scripts/release-smoke.sh`.
+- [x] Commit: `git add tests/repository_contract.rs && git commit -m "test(release): require native binary release contract"`
 
 ---
 
