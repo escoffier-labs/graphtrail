@@ -579,7 +579,7 @@ jobs:
 - Modify: `tests/repository_contract.rs`
 - Modify: `docs/releasing.md`
 
-- [ ] Append the documentation contract test before `agent_startup_requires_skill_selection_before_brigade_commands` (after the binary workflow test):
+- [x] Append the documentation contract test before `agent_startup_requires_skill_selection_before_brigade_commands` (after the binary workflow test):
 
 ```rust
 #[test]
@@ -610,10 +610,10 @@ fn binary_release_documentation_covers_native_assets() {
 }
 ```
 
-- [ ] Run documentation contract RED: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_documentation_covers_native_assets" --capture brigade-work`
-- [ ] Expect FAIL with `release guide must document native binary assets`.
+- [x] Run documentation contract RED: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_documentation_covers_native_assets" --capture brigade-work`
+- [x] Expect FAIL with `release guide must document native binary assets`.
 
-- [ ] Replace the file contents of `docs/releasing.md` with:
+- [x] Replace the file contents of `docs/releasing.md` with:
 
 ```markdown
 # Releasing GraphTrail
@@ -693,8 +693,8 @@ If binary upload fails after some assets landed, rerun `release-binaries.yml` wi
 Never reuse a version for different source. If tagged source itself is wrong, leave the tag and release as historical records, fix forward with a new patch version, and document the superseding release.
 ```
 
-- [ ] Run documentation contract GREEN: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_documentation_covers_native_assets" --capture brigade-work`
-- [ ] Commit: `git add tests/repository_contract.rs docs/releasing.md && git commit -m "docs(release): document native binary release workflow"`
+- [x] Run documentation contract GREEN: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_documentation_covers_native_assets" --capture brigade-work`
+- [x] Commit: `git add tests/repository_contract.rs docs/releasing.md && git commit -m "docs(release): document native binary release workflow"`
 
 ---
 

@@ -561,6 +561,33 @@ fn binary_release_attaches_native_assets_with_checksums() {
 }
 
 #[test]
+fn binary_release_documentation_covers_native_assets() {
+    let recovery = repository_file("docs/releasing.md");
+    for required in [
+        ".github/workflows/release-binaries.yml",
+        "graphtrail-linux-amd64",
+        "graphtrail-mcp-linux-amd64",
+        "checksums.txt",
+        "ubuntu-22.04",
+        "ubuntu-22.04-arm",
+        "linux-arm64",
+        "macos-15-intel",
+        "darwin-amd64",
+        "macos-15",
+        "darwin-arm64",
+        "windows-amd64",
+        "workflow_dispatch",
+        "release-bundle",
+        "refs/heads/master",
+    ] {
+        assert!(
+            recovery.contains(required),
+            "release guide must document native binary assets: {required}"
+        );
+    }
+}
+
+#[test]
 fn agent_startup_requires_skill_selection_before_brigade_commands() {
     let agents = repository_file("AGENTS.md");
     let first_raw_command = agents
