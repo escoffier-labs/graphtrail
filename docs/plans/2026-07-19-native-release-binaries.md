@@ -716,7 +716,7 @@ Never reuse a version for different source. If tagged source itself is wrong, le
 
 ### Task 6: Repository gate
 
-- [ ] Run full gate through Brigade:
+- [x] Run full gate through Brigade:
 
 ```bash
 brigade work verify run --target . --command "cargo fmt --check" --capture brigade-work
@@ -725,7 +725,7 @@ brigade work verify run --target . --command "cargo test --all-features" --captu
 brigade work verify run --target . --command "cargo build --release" --capture brigade-work
 ```
 
-- [ ] Expect all four commands exit 0.
+- [x] Expect all four commands exit 0.
 
 ---
 
