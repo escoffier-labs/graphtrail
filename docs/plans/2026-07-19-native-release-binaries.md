@@ -302,7 +302,7 @@ fn binary_release_attaches_native_assets_with_checksums() {
 **Files:**
 - Create: `scripts/release-smoke.sh`
 
-- [ ] Create `scripts/release-smoke.sh`:
+- [x] Create `scripts/release-smoke.sh`:
 
 ```bash
 #!/usr/bin/env bash
@@ -337,10 +337,10 @@ printf '%s\n' \
 echo "release smoke passed for $tag"
 ```
 
-- [ ] Make executable: `chmod +x scripts/release-smoke.sh`
-- [ ] Run RED again: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_attaches_native_assets_with_checksums" --capture brigade-work`
-- [ ] Expect FAIL on missing `.github/workflows/release-binaries.yml` only.
-- [ ] Commit: `git add scripts/release-smoke.sh && git commit -m "feat(release): add post-upload release smoke script"`
+- [x] Make executable: `chmod +x scripts/release-smoke.sh`
+- [x] Run RED again: `brigade work verify run --target . --command "cargo test --test repository_contract binary_release_attaches_native_assets_with_checksums" --capture brigade-work`
+- [x] Expect FAIL on missing `.github/workflows/release-binaries.yml` only.
+- [x] Commit: `git add scripts/release-smoke.sh && git commit -m "feat(release): add post-upload release smoke script"`
 
 ---
 
