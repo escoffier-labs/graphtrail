@@ -29,6 +29,9 @@
   <img src="https://shieldcn.dev/badge/MCP-server-8A2BE2.svg" alt="MCP server">
 </p>
 
+> [!IMPORTANT]
+> **GitHub migration notice:** Starting with [Brigade v0.25.0](https://github.com/escoffier-labs/brigade/releases/tag/v0.25.0), the unified distribution moved to [escoffier-labs/brigade](https://github.com/escoffier-labs/brigade). Install `brigade-cli` and run `brigade setup`, which installs the managed `graphtrail` and `graphtrail-mcp` compatibility binaries. The standalone installation instructions below remain the one-release compatibility fallback. This repository is a frozen source-history mirror. New feature work belongs in Brigade. Security and release-integrity fixes may still land in this mirror during Phase 4A. Its `master` branch will not be rewritten or force-pushed, and archival remains unauthorized during Phase 4A. See the tracked [Phase 4A policy](https://github.com/escoffier-labs/brigade/blob/main/docs/phase-4a-compatibility-and-archive.md).
+
 ## Install
 
 GraphTrail requires Rust 1.85 or newer. It installs two binaries: `graphtrail` for CLI use and `graphtrail-mcp` for MCP clients. The crates.io badge above is the source of truth for the version installed from the registry; a GitHub tag is not treated as registry-available until that exact version is verified. From [crates.io](https://crates.io/crates/graphtrail):
