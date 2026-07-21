@@ -30,7 +30,7 @@
 </p>
 
 > [!IMPORTANT]
-> **GitHub migration notice:** Starting with [Brigade v0.25.0](https://github.com/escoffier-labs/brigade/releases/tag/v0.25.0), the unified distribution moved to [escoffier-labs/brigade](https://github.com/escoffier-labs/brigade). Install `brigade-cli` and run `brigade setup`, which installs the managed `graphtrail` and `graphtrail-mcp` compatibility binaries. The standalone installation instructions below remain the one-release compatibility fallback. This repository is a frozen source-history mirror. New feature work belongs in Brigade. Security and release-integrity fixes may still land in this mirror during Phase 4A. Its `master` branch will not be rewritten or force-pushed, and archival remains unauthorized during Phase 4A. See the tracked [Phase 4A policy](https://github.com/escoffier-labs/brigade/blob/main/docs/phase-4a-compatibility-and-archive.md).
+> **Archived mirror:** GraphTrail lives in [escoffier-labs/brigade](https://github.com/escoffier-labs/brigade) (source under `engines/code-graph`). Install `brigade-cli` and run `brigade setup`, which installs the managed `graphtrail` and `graphtrail-mcp` binaries and records their absolute paths for MCP clients. This repository is a frozen source-history mirror kept for the import commit map. Its `master` branch was never rewritten or force-pushed. The compatibility window was compressed by maintainer decision on 2026-07-21 (see the [phase-4a policy](https://github.com/escoffier-labs/brigade/blob/main/docs/phase-4a-compatibility-and-archive.md)). Report issues on the [Brigade tracker](https://github.com/escoffier-labs/brigade/issues).
 
 ## Install
 
